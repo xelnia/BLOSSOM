@@ -1,0 +1,3 @@
+- Add support for DK3
+- Test more MAME versions
+- API research on pre-0.175 to see if we can go further back

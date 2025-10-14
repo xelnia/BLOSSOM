@@ -1,0 +1,13 @@
+# Output files
+*.csv
+*.json
+*.txt
+*_scores.*
+
+# MAME files
+*.inp
+*.cfg
+*.nvram
+
+# Tests
+test/
