@@ -5,6 +5,6 @@
 - Test L22 gameplay/logging in CK
 - Change destination for output log file set to new folder
 - Add best/worst stage(s) to final stats
-- Differentiate death occurance with asterisk or indentation
+- Differentiate DEATH occurence with asterisk or indentation
 - Convert total playback frames to estimated playing time
 - Add support for dkonghrd set
