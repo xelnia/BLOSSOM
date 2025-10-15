@@ -1,4 +1,5 @@
 - Add support for DK3
 - Test more MAME versions
 - API research on pre-0.175 to see if we can go further back
-- Test simultaneous death/level complete (EXTRA MAN? EXTRA MAN?). DK3 handles this differently.
+- Test simultaneous death/level complete (EXTRA MAN? EXTRA MAN?). DK3 handles this differently. What about board skips in CK?
+- Test L22 gameplay/logging in CK
