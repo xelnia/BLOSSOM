@@ -3,3 +3,8 @@
 - API research on pre-0.175 to see if we can go further back
 - Test simultaneous death/level complete (EXTRA MAN? EXTRA MAN?). DK3 handles this differently. What about board skips in CK?
 - Test L22 gameplay/logging in CK
+- Change destination for output log file set to new folder
+- Add best/worst stage(s) to final stats
+- Differentiate death occurance with asterisk or indentation
+- Convert total playback frames to estimated playing time
+- Add support for dkonghrd set
