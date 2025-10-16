@@ -11,3 +11,12 @@
 
 # Tests
 test/
+
+# Backups
+backup/
+
+# VS Code
+.vscode/
+
+# Config files
+*.toml
