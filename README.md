@@ -43,7 +43,7 @@ A Lua script that logs the score after every stage, and calculates board average
 - The output filenames will be appended with a timestamp to avoid overwriting.
 
 ## Acknowledgements
-- **wflimusic** - for inspiration, project name, and testing
-- **Flobeamer1922** - for testing
-- **mahlemiut** - for WolfMAME
-- **MAMEdev** - for MAME
+- **[wflimusic](https://github.com/wflimusic)** - for inspiration, project name, and testing
+- **[Flobeamer1922](https://www.twitch.tv/flobeamer1922)** - for testing
+- **[mahlemiut](https://github.com/mahlemiut)** - for WolfMAME
+- **[MAMEdev](https://github.com/mamedev)** - for MAME
