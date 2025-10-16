@@ -43,4 +43,7 @@ A Lua script that logs the score after every stage, and calculates board average
 - The output filenames will be appended with a timestamp to avoid overwriting.
 
 ## Acknowledgements
-**wflimusic** - for the inspiration and name
+**wflimusic** - for inspiration, project name, and testing
+**Flobeamer1922** - for testing
+**mahlemiut** - for WolfMAME
+**MAMEdev** - for MAME

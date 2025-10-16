@@ -14,6 +14,7 @@
     - We should be able to easily add support for a lot of the "original" rom revisions
     - Need to double-check how dkonghrd works internally see if Start/Pace/Average calculations need changing
 - "Pace" for DK3? Projected RBS and Loop scores?
+- Scrap this whole thing for an external OCR version Kappa
 
 
 ## Finished
