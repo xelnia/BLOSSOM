@@ -9,12 +9,12 @@
 ## Considering
 
 - Add best/worst stage(s)/L5+ level(s) to final stats
-- Add support for all games with Donkeykongforum.net leaderboards. Note: dkonghrd & dkong-pace roms should be 1:1
+- Add support for all games with Donkeykongforum.net leaderboards
 - Differentiate DEATH occurrence with asterisk or indentation
 - Convert total playback frames to estimated playing time
 - "Pace" for DK3? Projected RBS and Loop scores?
 - Scrap this whole thing for an external OCR version Kappa. Test with Tesseract OCR engine obs-ocr plugin 
-- Dynamically check final stats against DKF+ISLR+Any active scoreboard (snapshot) for record/rank discovery & notification. 
+- Dynamically check final stats against DKF+ISLR+Any active scoreboard (snapshot) for record/rank discovery & notification
 
 ## Finished
 - Add support for DK3
