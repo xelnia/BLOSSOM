@@ -8,7 +8,7 @@
 
 ## Considering
 
-- Add best/worst stage(s)/L5+ level(s) to final stats
+- Add best/worst stage/L5+ level to Final Stats or keep it neat adding only best after corresponding stage
 - Add support for all games with Donkeykongforum.net leaderboards
 - Differentiate DEATH occurrence with asterisk or indentation
 - Convert total playback frames to estimated playing time
