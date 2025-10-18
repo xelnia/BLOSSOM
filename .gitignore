@@ -20,3 +20,6 @@ backup/
 
 # Config files
 *.toml
+
+# Ideas
+ideas/

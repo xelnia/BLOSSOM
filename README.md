@@ -41,6 +41,7 @@ A Lua script that logs the score after every stage, and calculates board average
 - Adjust `mame`, `dkong`, and `dkong.inp` to your needs
 - The output CSV, JSON, and TXT files will be saved in a new `blossom_logs` directory your main MAME directory.
 - The output filenames will be appended with a timestamp to avoid overwriting.
+- Exiting MAME before the end of INP playback will generate summary data based on last completed board
 
 ## Acknowledgements
 - **[wflimusic](https://github.com/wflimusic)** - for inspiration, project name, and testing
