@@ -11,6 +11,7 @@
 - Scrap this whole thing for an external OCR version Kappa. Test with Tesseract OCR engine obs-ocr plugin
 - Dynamically check final stats against DKF+ISLR+Any active scoreboard (snapshot) for record/rank discovery & notification
 - Change Final Stage verbiage from pies to conveyor with use of TAB key to justify spacing and vertical visual appeal. Remove redundant : between stage name and the word AVERAGE to improve alignment. Separate tied Best/Worst stage(s) by comma within (1) set of parenthesis (14-3, 15-5, 17-1) etc.
+- Generate Log YES/NO? confirmation option instead of automatic output? or post-script Keep Log YES/NO? query with automatic discard to Recycle Bin upon NO
 
 ## Finished
 - Add support for DK3
