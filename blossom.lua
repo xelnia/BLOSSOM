@@ -405,6 +405,12 @@ local start_phase_deaths = 0 -- Count of deaths during start phase
 local score_offset = 0 -- Tracks million-point rollovers
 local game_over_processed = false -- Prevents double-printing at game over
 
+-- Deferred death recording (score may settle after mode changes to DEAD)
+local death_pending = false
+local death_pending_screen_type = 0
+local death_pending_level = 0
+local death_pending_position = 0
+
 -- Best/Worst stage and level tracking (platformer games only)
 -- Indexed by screen type (1-4) to match screen_sum/screen_count pattern
 local screen_scores = {
@@ -448,6 +454,12 @@ local game_variation = nil -- For DK3 variation detection
 local dk3_life_tracking = {} -- Array of {life_num, start_score, end_score, start_board, boards_completed}
 local dk3_current_life_start_score = 0
 local dk3_current_life_start_board = 1 -- Game starts on board 1
+
+-- Deferred death recording for DK3
+local dk3_death_pending = false
+local dk3_death_pending_screen_type = 0
+local dk3_death_pending_level = 0
+local dk3_death_pending_lives_at_death = 0
 
 -- GAMEPLAY DURATION TRACKING
 local start_button_pressed = false -- Edge detected: start button was pressed
@@ -2189,6 +2201,34 @@ local function on_frame_platformer()
   local level = read_byte(config.addresses.level)
   local lives = read_byte(config.addresses.lives)
 
+  -- DEATH SCORE SETTLEMENT: Record deferred death when leaving DEAD mode
+  -- Score may update 1+ frames after mode changes to DEAD, so we wait
+  -- for the score to settle before recording the death entry
+  if death_pending and prev_game_mode == config.modes.dead and game_mode ~= config.modes.dead then
+    local current_score = read_score_with_rollover_check()
+    death_count = death_count + 1
+    local score_earned = current_score - stage_start_score
+
+    total_death_points = total_death_points + score_earned
+
+    record_stage(
+      death_pending_screen_type,
+      death_pending_level,
+      death_pending_position,
+      current_screen_num,
+      score_earned,
+      current_score,
+      true,
+      death_count,
+      lives
+    )
+
+    last_stage_was_completed = false
+    stage_start_score = current_score
+    prev_score = current_score
+    death_pending = false
+  end
+
   -- GAMEPLAY DURATION TRACKING (runs only until gameplay confirmed)
   if not gameplay_started then
     local config = get_config()
@@ -2310,33 +2350,13 @@ local function on_frame_platformer()
     prev_score = current_score
   end
 
-  -- DEATH DETECTION
-  -- Death occurs when mode changes from GAMEPLAY to DEAD
+  -- DEATH DETECTION: Flag death for deferred recording
+  -- Actual recording happens when leaving DEAD mode (score settlement)
   if game_mode == config.modes.dead and prev_game_mode == config.modes.gameplay then
-    local current_score = read_score_with_rollover_check()
-    death_count = death_count + 1
-    local score_earned = current_score - stage_start_score
-    local current_position = level_position[level]
-
-    -- Accumulate death points
-    total_death_points = total_death_points + score_earned
-
-    -- Record the death
-    record_stage(
-      screen_type,
-      level,
-      current_position,
-      current_screen_num,
-      score_earned,
-      current_score,
-      true,
-      death_count,
-      lives
-    )
-
-    last_stage_was_completed = false
-    stage_start_score = current_score
-    prev_score = current_score
+    death_pending = true
+    death_pending_screen_type = screen_type
+    death_pending_level = level
+    death_pending_position = level_position[level]
   end
 
   -- GAME OVER
@@ -2387,6 +2407,71 @@ local function on_frame_dkong3()
   local screen_type = read_byte(config.addresses.screen_type)
   local level = read_byte(config.addresses.level)
   local lives = read_byte(config.addresses.lives)
+
+  -- DK3 DEATH SCORE SETTLEMENT: Record deferred death when score settles
+  if dk3_death_pending then
+    local settle_now = false
+
+    -- Normal settlement: dead_status returns to alive
+    if
+      dead_status == config.death_status.alive
+      and dk3_prev_dead_status == config.death_status.dead
+    then
+      settle_now = true
+    end
+
+    -- Game over while death pending (dead_status may not return to alive)
+    if
+      (game_mode == config.modes.game_over_1 or game_mode == config.modes.game_over_2)
+      and dk3_prev_game_mode ~= config.modes.game_over_1
+      and dk3_prev_game_mode ~= config.modes.game_over_2
+    then
+      settle_now = true
+    end
+
+    if settle_now then
+      local current_score = read_score_with_rollover_check()
+      death_count = death_count + 1
+      local score_earned = current_score - stage_start_score
+
+      total_death_points = total_death_points + score_earned
+
+      local death_board_num = dk3_actual_board_num + 1
+
+      record_board_dk3(
+        death_board_num,
+        dk3_death_pending_level,
+        current_screen_num,
+        score_earned,
+        current_score,
+        true,
+        death_count,
+        dk3_death_pending_lives_at_death,
+        dk3_death_pending_screen_type
+      )
+
+      -- Record life performance
+      local boards_completed = dk3_actual_board_num - dk3_current_life_start_board + 1
+      if boards_completed < 0 then
+        boards_completed = 0
+      end
+
+      table.insert(dk3_life_tracking, {
+        life_num = death_count,
+        start_score = dk3_current_life_start_score,
+        end_score = current_score,
+        start_board = dk3_current_life_start_board,
+        boards_completed = boards_completed,
+      })
+
+      dk3_current_life_start_score = current_score
+      dk3_current_life_start_board = death_board_num
+
+      stage_start_score = current_score
+      prev_score = current_score
+      dk3_death_pending = false
+    end
+  end
 
   -- GAMEPLAY DURATION TRACKING (runs only until gameplay confirmed)
   if not gameplay_started then
@@ -2482,56 +2567,16 @@ local function on_frame_dkong3()
     prev_score = current_score
   end
 
-  -- DEATH DETECTION
+  -- DEATH DETECTION: Flag death for deferred recording
   if
-    dead_status == config.death_status.dead and dk3_prev_dead_status == config.death_status.alive
+    dead_status == config.death_status.dead
+    and dk3_prev_dead_status == config.death_status.alive
   then
-    local current_score = read_score_with_rollover_check()
-    death_count = death_count + 1
-    local score_earned = current_score - stage_start_score
-
-    total_death_points = total_death_points + score_earned
-
-    -- For deaths, use actual_board_num + 1 (the board being attempted)
-    local death_board_num = dk3_actual_board_num + 1
-
-    -- Lives haven't decremented in memory yet at death detection, so subtract 1
-    local lives_after_death = lives > 0 and (lives - 1) or 0
-
-    record_board_dk3(
-      death_board_num,
-      level,
-      current_screen_num,
-      score_earned,
-      current_score,
-      true,
-      death_count,
-      lives_after_death,
-      screen_type
-    )
-
-    -- Record life performance
-    -- Calculate boards completed: dk3_actual_board_num is last COMPLETED board
-    -- death_board_num is the board being ATTEMPTED (not completed)
-    local boards_completed = dk3_actual_board_num - dk3_current_life_start_board + 1
-    if boards_completed < 0 then
-      boards_completed = 0 -- Edge case: died on first board of life
-    end
-
-    table.insert(dk3_life_tracking, {
-      life_num = death_count,
-      start_score = dk3_current_life_start_score,
-      end_score = current_score,
-      start_board = dk3_current_life_start_board,
-      boards_completed = boards_completed, -- Store directly instead of calculating later
-    })
-
-    -- Reset for next life
-    dk3_current_life_start_score = current_score
-    dk3_current_life_start_board = death_board_num -- Next life starts on the board where we died
-
-    stage_start_score = current_score
-    prev_score = current_score
+    dk3_death_pending = true
+    dk3_death_pending_screen_type = screen_type
+    dk3_death_pending_level = level
+    -- Capture lives at detection time (haven't decremented in memory yet)
+    dk3_death_pending_lives_at_death = lives > 0 and (lives - 1) or 0
   end
 
   -- GAME OVER
@@ -2610,6 +2655,72 @@ end
 register_frame_callback(protected_on_frame)
 
 register_stop_callback(function()
+  -- Settle any pending death before processing session end
+  if death_pending then
+    local current_score = read_score_with_rollover_check()
+    death_count = death_count + 1
+    local score_earned = current_score - stage_start_score
+    total_death_points = total_death_points + score_earned
+    local stop_config = get_config()
+
+    record_stage(
+      death_pending_screen_type,
+      death_pending_level,
+      death_pending_position,
+      current_screen_num,
+      score_earned,
+      current_score,
+      true,
+      death_count,
+      read_byte(stop_config.addresses.lives)
+    )
+
+    last_stage_was_completed = false
+    stage_start_score = current_score
+    prev_score = current_score
+    death_pending = false
+  end
+
+  if dk3_death_pending then
+    local current_score = read_score_with_rollover_check()
+    death_count = death_count + 1
+    local score_earned = current_score - stage_start_score
+    total_death_points = total_death_points + score_earned
+
+    local death_board_num = dk3_actual_board_num + 1
+
+    record_board_dk3(
+      death_board_num,
+      dk3_death_pending_level,
+      current_screen_num,
+      score_earned,
+      current_score,
+      true,
+      death_count,
+      dk3_death_pending_lives_at_death,
+      dk3_death_pending_screen_type
+    )
+
+    local boards_completed = dk3_actual_board_num - dk3_current_life_start_board + 1
+    if boards_completed < 0 then
+      boards_completed = 0
+    end
+
+    table.insert(dk3_life_tracking, {
+      life_num = death_count,
+      start_score = dk3_current_life_start_score,
+      end_score = current_score,
+      start_board = dk3_current_life_start_board,
+      boards_completed = boards_completed,
+    })
+
+    dk3_current_life_start_score = current_score
+    dk3_current_life_start_board = death_board_num
+    stage_start_score = current_score
+    prev_score = current_score
+    dk3_death_pending = false
+  end
+
   -- Only process if game over hasn't been handled yet
   if not game_over_processed and current_screen_num > 0 then
     local current_score = read_score_with_rollover_check()
