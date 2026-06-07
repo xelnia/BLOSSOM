@@ -70,6 +70,10 @@ local function read_score_with_rollover_check()
   -- Compare raw scores to detect the transition, not adjusted scores
   if prev_raw_score > 900000 and raw_score < 100000 then
     score_offset = score_offset + 1000000
+    -- Capture frame for first million-point milestone (DK3 T7)
+    if not dk3_million_frame then
+      dk3_million_frame = frame_count
+    end
   end
 
   prev_raw_score = raw_score
@@ -89,6 +93,24 @@ local function check_button_pressed(address, bit_position, active_high)
     return bit_set -- Button pressed when bit is 1 (dkong, dkongjr, dkong3)
   else
     return not bit_set -- Button pressed when bit is 0 (ckongpt2 only)
+  end
+end
+
+-- Read the bonus timer value, handling encoding differences between games
+-- DK/DKJR/CK: plain binary at 0x62B1 (value 50 = timer 5000)
+-- DK3: BCD at 0x68C2 (value 0x79 = timer 7900)
+local function read_bonus_timer()
+  local config = get_config()
+  local raw = read_byte(config.addresses.bonus_timer)
+
+  if config.bonus_timer_bcd then
+    -- BCD decode: each nibble is a decimal digit
+    local high = math.floor(raw / 16)
+    local low = raw % 16
+    return (high * 10 + low) * 100
+  else
+    -- Plain binary: multiply directly
+    return raw * 100
   end
 end
 

@@ -2,7 +2,7 @@
 -- MAIN FRAME LOOP - PLATFORMER GAMES (DK/DKJR/CK)
 -- ============================================================================
 local function on_frame_platformer()
-  frame_count = frame_count + 1
+  frame_count = read_frame_number() + 1
 
   local config = get_config()
 
@@ -168,6 +168,7 @@ local function on_frame_platformer()
     death_pending_screen_type = screen_type
     death_pending_level = level
     death_pending_position = level_position[level]
+    death_pending_bonus = read_bonus_timer()
   end
 
   -- GAME OVER
@@ -210,7 +211,7 @@ end
 -- MAIN FRAME LOOP - DONKEY KONG 3
 -- ============================================================================
 local function on_frame_dkong3()
-  frame_count = frame_count + 1
+  frame_count = read_frame_number() + 1
 
   local config = get_config()
   local game_mode = read_byte(config.addresses.game_mode)
@@ -369,7 +370,7 @@ local function on_frame_dkong3()
     )
 
     -- After recording board 256, 512, 768, etc., increment loop counter and set new loop_start_score
-    if dk3_actual_board_num % 256 == 0 then
+    if dk3_actual_board_num % config.loop_size == 0 then
       dk3_current_loop = dk3_current_loop + 1
       dk3_loop_start_score = current_score
     end
@@ -388,6 +389,7 @@ local function on_frame_dkong3()
     dk3_death_pending_level = level
     -- Capture lives at detection time (haven't decremented in memory yet)
     dk3_death_pending_lives_at_death = lives > 0 and (lives - 1) or 0
+    dk3_death_pending_bonus = read_bonus_timer()
   end
 
   -- GAME OVER

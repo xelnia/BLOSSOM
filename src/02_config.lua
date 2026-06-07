@@ -41,6 +41,13 @@ local GAME_CONFIGS = {
       lives = 0x6228,
       level = 0x6229,
       input_start_coin = 0x7D00,
+      -- TIMING & ANALYSIS ADDRESSES
+      bonus_timer = 0x62B1,
+      player_x = 0x6203,
+      player_y = 0x6205,
+      rivet_key_count = 0x6290,
+      level_display_vram = 0x74A3, -- Level ones digit tile in VRAM
+      level_display_tens_vram = 0x74C3, -- Level tens digit tile in VRAM
     },
 
     -- GAME MODES
@@ -81,6 +88,8 @@ local GAME_CONFIGS = {
     coin_button_bit = 7,
     input_active_high = true,
     coin_impulse = false,
+    -- BONUS TIMER FORMAT
+    bonus_timer_bcd = false,
   },
 
   dkongjr = {
@@ -99,6 +108,12 @@ local GAME_CONFIGS = {
       lives = 0x6228,
       level = 0x6229,
       input_start_coin = 0x7D00,
+      -- TIMING & ANALYSIS ADDRESSES
+      bonus_timer = 0x62B1,
+      player_x = 0x6203,
+      player_y = 0x6205,
+      rivet_key_count = 0x6290,
+      level_display_vram = 0x7484, -- Level digit tile in VRAM (single digit, no tens)
     },
 
     -- GAME MODES
@@ -140,6 +155,8 @@ local GAME_CONFIGS = {
     coin_button_bit = 7,
     input_active_high = true,
     coin_impulse = false,
+    -- BONUS TIMER FORMAT
+    bonus_timer_bcd = false,
   },
 
   ckongpt2 = {
@@ -158,6 +175,13 @@ local GAME_CONFIGS = {
       lives = 0x6228,
       level = 0x6229,
       input_start_coin = 0xB800,
+      -- TIMING & ANALYSIS ADDRESSES
+      bonus_timer = 0x62B1,
+      player_x = 0x6203,
+      player_y = 0x6205,
+      rivet_key_count = 0x6290,
+      level_display_vram = 0x9083, -- Level ones digit tile in VRAM
+      level_display_tens_vram = 0x90A3, -- Level tens digit tile in VRAM
     },
 
     -- GAME MODES
@@ -198,6 +222,8 @@ local GAME_CONFIGS = {
     coin_button_bit = 0,
     input_active_high = false, -- ACTIVE LOW!
     coin_impulse = false,
+    -- BONUS TIMER FORMAT
+    bonus_timer_bcd = false,
   },
 
   dkong3 = {
@@ -219,6 +245,10 @@ local GAME_CONFIGS = {
       dip_switches = 0x7D80,
       input_start = 0x7C00, -- Start buttons (separate from coin)
       input_coin = 0x7C80, -- Coin buttons (separate from start)
+      -- TIMING & ANALYSIS ADDRESSES
+      bonus_timer = 0x68C2,
+      player_x = 0x6107,
+      player_y = 0x6109,
     },
 
     -- GAME MODES
@@ -256,12 +286,14 @@ local GAME_CONFIGS = {
     },
     num_screen_types = 3,
     loop_size = 256,
-    max_diff_board = 27,
-    rbs_milestone = 159,
+    max_diff_board = 27, -- Where max difficulty starts
+    rbs_milestone = 160, -- Where RBS starts
     -- INPUT DETECTION
     start_button_bit = 5,
     coin_button_bit = 5, -- Same bit, different addresses
     input_active_high = true,
     coin_impulse = true, -- Only lasts 1 frame!
+    -- BONUS TIMER FORMAT
+    bonus_timer_bcd = true,
   },
 }

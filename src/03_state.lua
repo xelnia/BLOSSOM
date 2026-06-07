@@ -33,6 +33,8 @@ local death_pending = false
 local death_pending_screen_type = 0
 local death_pending_level = 0
 local death_pending_position = 0
+local death_pending_bonus = 0
+
 
 -- Best/Worst stage and level tracking (platformer games only)
 -- Indexed by screen type (1-4) to match screen_sum/screen_count pattern
@@ -64,8 +66,10 @@ local dk3_current_loop = 1
 local dk3_loop_start_score = 0
 local dk3_max_diff_reached = false
 local dk3_max_diff_count = 0
+local dk3_max_diff_frame = nil -- Frame when max difficulty first reached
 local dk3_rbs_milestones = {}
 local dk3_loop_milestones = {}
+local dk3_million_frame = nil -- Frame when score first reaches/passes 1,000,000
 local dk3_stage_completed = false
 local dk3_completed_screen_type = 0
 local dk3_completed_level = 0
@@ -83,6 +87,7 @@ local dk3_death_pending = false
 local dk3_death_pending_screen_type = 0
 local dk3_death_pending_level = 0
 local dk3_death_pending_lives_at_death = 0
+local dk3_death_pending_bonus = 0
 
 -- GAMEPLAY DURATION TRACKING
 local start_button_pressed = false -- Edge detected: start button was pressed

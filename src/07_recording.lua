@@ -28,11 +28,13 @@ local function record_board_dk3(
 
   table.insert(stage_data, board_info)
 
+  local config = get_config()
+
   -- Track averages (only for completed boards, not deaths, and only during max difficulty)
   local avg_str = ""
   if not is_death and dk3_max_diff_reached then
     -- Skip Board 0 (256, 512, etc.) - these are Blue boards not included in averages
-    local memory_board_check = actual_board % 256
+    local memory_board_check = actual_board % config.loop_size
     if memory_board_check ~= 0 then
       local avg_value = nil
       local avg_type = nil
@@ -82,12 +84,15 @@ local function record_board_dk3(
     )
   end
 
-  -- Check for MAX DIFFICULTY reached (board 26 completion triggers the message, board 27+ gets averages)
+  -- Check for MAX DIFFICULTY reached (completing board before max_diff_board triggers the message)
   if not is_death then
-    local memory_board_check = actual_board % 256
-    if memory_board_check == 26 then
+    local memory_board_check = actual_board % config.loop_size
+    if memory_board_check == config.max_diff_board - 1 then
       dk3_max_diff_count = dk3_max_diff_count + 1
       dk3_max_diff_reached = true
+      if not dk3_max_diff_frame then
+        dk3_max_diff_frame = frame_count
+      end
       print(
         string.format(
           "\n>>> MAX DIFFICULTY REACHED <<< | Start Phase %d Score: %s | Total Score: %s\n",
@@ -99,10 +104,12 @@ local function record_board_dk3(
     end
   end
 
-  -- Check for RBS milestone (finishing board 159, 415, 671, etc.)
+  -- Check for RBS milestone (completing board before rbs_milestone, then every 256 boards)
+  local rbs_trigger = config.rbs_milestone - 1
   if
     not is_death
-    and (actual_board == 159 or (actual_board > 159 and (actual_board - 159) % 256 == 0))
+    and (actual_board == rbs_trigger
+      or (actual_board > rbs_trigger and (actual_board - rbs_trigger) % config.loop_size == 0))
   then
     dk3_rbs_count = dk3_rbs_count + 1
     local rbs_score = total_score - dk3_loop_start_score
@@ -112,6 +119,7 @@ local function record_board_dk3(
       rbs_num = dk3_rbs_count,
       total_score = total_score,
       rbs_score = rbs_score,
+      frame = frame_count,
     })
 
     print(
@@ -125,9 +133,9 @@ local function record_board_dk3(
     )
   end
 
-  -- Check for loop completion (board 256, 512, 768, etc. = memory board 0)
-  if not is_death and actual_board % 256 == 0 and actual_board > 0 then
-    local loop_num = actual_board / 256 -- Which loop just completed (1, 2, 3, etc.)
+  -- Check for loop completion (every loop_size boards = memory board 0)
+  if not is_death and actual_board % config.loop_size == 0 and actual_board > 0 then
+    local loop_num = actual_board / config.loop_size -- Which loop just completed (1, 2, 3, etc.)
     local loop_score = total_score - dk3_loop_start_score
 
     -- Store milestone data
@@ -135,6 +143,7 @@ local function record_board_dk3(
       loop_num = loop_num,
       total_score = total_score,
       loop_score = loop_score,
+      frame = frame_count,
     })
 
     print(

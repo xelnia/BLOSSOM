@@ -22,6 +22,7 @@ end
 local mame_machine
 local mame_options
 local mame_devices
+local screen_device
 
 -- Detect if manager.machine is a property or method
 if type(manager.machine) == "userdata" then
@@ -54,6 +55,31 @@ elseif type(mame_machine.devices) == "function" then
   mame_devices = mame_machine:devices()
 else
   error("ERROR: Cannot access MAME devices object. Incompatible MAME version.")
+end
+
+-- Access the screen device for frame counting
+-- screen.frame_number provides the deterministic MAME frame counter
+-- that matches the UI display (with +1 offset applied at read time)
+if type(mame_machine.screens) == "userdata" or type(mame_machine.screens) == "table" then
+  screen_device = mame_machine.screens[":screen"]
+elseif type(mame_machine.screens) == "function" then
+  screen_device = mame_machine:screens()[":screen"]
+else
+  error("ERROR: Cannot access MAME screens object. Incompatible MAME version.")
+end
+
+-- Detect if screen.frame_number is a property or method
+local read_frame_number
+if type(screen_device.frame_number) == "function" then
+  -- Older MAME: frame_number() is a method
+  read_frame_number = function()
+    return screen_device:frame_number()
+  end
+else
+  -- Newer MAME: frame_number is a property
+  read_frame_number = function()
+    return screen_device.frame_number
+  end
 end
 
 -- Store frame/stop callback subscriptions for MAME 0.254+

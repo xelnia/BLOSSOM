@@ -30,6 +30,7 @@ end
 local mame_machine
 local mame_options
 local mame_devices
+local screen_device
 
 -- Detect if manager.machine is a property or method
 if type(manager.machine) == "userdata" then
@@ -62,6 +63,31 @@ elseif type(mame_machine.devices) == "function" then
   mame_devices = mame_machine:devices()
 else
   error("ERROR: Cannot access MAME devices object. Incompatible MAME version.")
+end
+
+-- Access the screen device for frame counting
+-- screen.frame_number provides the deterministic MAME frame counter
+-- that matches the UI display (with +1 offset applied at read time)
+if type(mame_machine.screens) == "userdata" or type(mame_machine.screens) == "table" then
+  screen_device = mame_machine.screens[":screen"]
+elseif type(mame_machine.screens) == "function" then
+  screen_device = mame_machine:screens()[":screen"]
+else
+  error("ERROR: Cannot access MAME screens object. Incompatible MAME version.")
+end
+
+-- Detect if screen.frame_number is a property or method
+local read_frame_number
+if type(screen_device.frame_number) == "function" then
+  -- Older MAME: frame_number() is a method
+  read_frame_number = function()
+    return screen_device:frame_number()
+  end
+else
+  -- Newer MAME: frame_number is a property
+  read_frame_number = function()
+    return screen_device.frame_number
+  end
 end
 
 -- Store frame/stop callback subscriptions for MAME 0.254+
@@ -150,6 +176,13 @@ local GAME_CONFIGS = {
       lives = 0x6228,
       level = 0x6229,
       input_start_coin = 0x7D00,
+      -- TIMING & ANALYSIS ADDRESSES
+      bonus_timer = 0x62B1,
+      player_x = 0x6203,
+      player_y = 0x6205,
+      rivet_key_count = 0x6290,
+      level_display_vram = 0x74A3, -- Level ones digit tile in VRAM
+      level_display_tens_vram = 0x74C3, -- Level tens digit tile in VRAM
     },
 
     -- GAME MODES
@@ -190,6 +223,8 @@ local GAME_CONFIGS = {
     coin_button_bit = 7,
     input_active_high = true,
     coin_impulse = false,
+    -- BONUS TIMER FORMAT
+    bonus_timer_bcd = false,
   },
 
   dkongjr = {
@@ -208,6 +243,12 @@ local GAME_CONFIGS = {
       lives = 0x6228,
       level = 0x6229,
       input_start_coin = 0x7D00,
+      -- TIMING & ANALYSIS ADDRESSES
+      bonus_timer = 0x62B1,
+      player_x = 0x6203,
+      player_y = 0x6205,
+      rivet_key_count = 0x6290,
+      level_display_vram = 0x7484, -- Level digit tile in VRAM (single digit, no tens)
     },
 
     -- GAME MODES
@@ -249,6 +290,8 @@ local GAME_CONFIGS = {
     coin_button_bit = 7,
     input_active_high = true,
     coin_impulse = false,
+    -- BONUS TIMER FORMAT
+    bonus_timer_bcd = false,
   },
 
   ckongpt2 = {
@@ -267,6 +310,13 @@ local GAME_CONFIGS = {
       lives = 0x6228,
       level = 0x6229,
       input_start_coin = 0xB800,
+      -- TIMING & ANALYSIS ADDRESSES
+      bonus_timer = 0x62B1,
+      player_x = 0x6203,
+      player_y = 0x6205,
+      rivet_key_count = 0x6290,
+      level_display_vram = 0x9083, -- Level ones digit tile in VRAM
+      level_display_tens_vram = 0x90A3, -- Level tens digit tile in VRAM
     },
 
     -- GAME MODES
@@ -307,6 +357,8 @@ local GAME_CONFIGS = {
     coin_button_bit = 0,
     input_active_high = false, -- ACTIVE LOW!
     coin_impulse = false,
+    -- BONUS TIMER FORMAT
+    bonus_timer_bcd = false,
   },
 
   dkong3 = {
@@ -328,6 +380,10 @@ local GAME_CONFIGS = {
       dip_switches = 0x7D80,
       input_start = 0x7C00, -- Start buttons (separate from coin)
       input_coin = 0x7C80, -- Coin buttons (separate from start)
+      -- TIMING & ANALYSIS ADDRESSES
+      bonus_timer = 0x68C2,
+      player_x = 0x6107,
+      player_y = 0x6109,
     },
 
     -- GAME MODES
@@ -365,13 +421,15 @@ local GAME_CONFIGS = {
     },
     num_screen_types = 3,
     loop_size = 256,
-    max_diff_board = 27,
-    rbs_milestone = 159,
+    max_diff_board = 27, -- Where max difficulty starts
+    rbs_milestone = 160, -- Where RBS starts
     -- INPUT DETECTION
     start_button_bit = 5,
     coin_button_bit = 5, -- Same bit, different addresses
     input_active_high = true,
     coin_impulse = true, -- Only lasts 1 frame!
+    -- BONUS TIMER FORMAT
+    bonus_timer_bcd = true,
   },
 }
 
@@ -410,6 +468,8 @@ local death_pending = false
 local death_pending_screen_type = 0
 local death_pending_level = 0
 local death_pending_position = 0
+local death_pending_bonus = 0
+
 
 -- Best/Worst stage and level tracking (platformer games only)
 -- Indexed by screen type (1-4) to match screen_sum/screen_count pattern
@@ -441,8 +501,10 @@ local dk3_current_loop = 1
 local dk3_loop_start_score = 0
 local dk3_max_diff_reached = false
 local dk3_max_diff_count = 0
+local dk3_max_diff_frame = nil -- Frame when max difficulty first reached
 local dk3_rbs_milestones = {}
 local dk3_loop_milestones = {}
+local dk3_million_frame = nil -- Frame when score first reaches/passes 1,000,000
 local dk3_stage_completed = false
 local dk3_completed_screen_type = 0
 local dk3_completed_level = 0
@@ -460,6 +522,7 @@ local dk3_death_pending = false
 local dk3_death_pending_screen_type = 0
 local dk3_death_pending_level = 0
 local dk3_death_pending_lives_at_death = 0
+local dk3_death_pending_bonus = 0
 
 -- GAMEPLAY DURATION TRACKING
 local start_button_pressed = false -- Edge detected: start button was pressed
@@ -599,6 +662,10 @@ local function read_score_with_rollover_check()
   -- Compare raw scores to detect the transition, not adjusted scores
   if prev_raw_score > 900000 and raw_score < 100000 then
     score_offset = score_offset + 1000000
+    -- Capture frame for first million-point milestone (DK3 T7)
+    if not dk3_million_frame then
+      dk3_million_frame = frame_count
+    end
   end
 
   prev_raw_score = raw_score
@@ -618,6 +685,24 @@ local function check_button_pressed(address, bit_position, active_high)
     return bit_set -- Button pressed when bit is 1 (dkong, dkongjr, dkong3)
   else
     return not bit_set -- Button pressed when bit is 0 (ckongpt2 only)
+  end
+end
+
+-- Read the bonus timer value, handling encoding differences between games
+-- DK/DKJR/CK: plain binary at 0x62B1 (value 50 = timer 5000)
+-- DK3: BCD at 0x68C2 (value 0x79 = timer 7900)
+local function read_bonus_timer()
+  local config = get_config()
+  local raw = read_byte(config.addresses.bonus_timer)
+
+  if config.bonus_timer_bcd then
+    -- BCD decode: each nibble is a decimal digit
+    local high = math.floor(raw / 16)
+    local low = raw % 16
+    return (high * 10 + low) * 100
+  else
+    -- Plain binary: multiply directly
+    return raw * 100
   end
 end
 
@@ -836,11 +921,13 @@ local function record_board_dk3(
 
   table.insert(stage_data, board_info)
 
+  local config = get_config()
+
   -- Track averages (only for completed boards, not deaths, and only during max difficulty)
   local avg_str = ""
   if not is_death and dk3_max_diff_reached then
     -- Skip Board 0 (256, 512, etc.) - these are Blue boards not included in averages
-    local memory_board_check = actual_board % 256
+    local memory_board_check = actual_board % config.loop_size
     if memory_board_check ~= 0 then
       local avg_value = nil
       local avg_type = nil
@@ -890,12 +977,15 @@ local function record_board_dk3(
     )
   end
 
-  -- Check for MAX DIFFICULTY reached (board 26 completion triggers the message, board 27+ gets averages)
+  -- Check for MAX DIFFICULTY reached (completing board before max_diff_board triggers the message)
   if not is_death then
-    local memory_board_check = actual_board % 256
-    if memory_board_check == 26 then
+    local memory_board_check = actual_board % config.loop_size
+    if memory_board_check == config.max_diff_board - 1 then
       dk3_max_diff_count = dk3_max_diff_count + 1
       dk3_max_diff_reached = true
+      if not dk3_max_diff_frame then
+        dk3_max_diff_frame = frame_count
+      end
       print(
         string.format(
           "\n>>> MAX DIFFICULTY REACHED <<< | Start Phase %d Score: %s | Total Score: %s\n",
@@ -907,10 +997,12 @@ local function record_board_dk3(
     end
   end
 
-  -- Check for RBS milestone (finishing board 159, 415, 671, etc.)
+  -- Check for RBS milestone (completing board before rbs_milestone, then every 256 boards)
+  local rbs_trigger = config.rbs_milestone - 1
   if
     not is_death
-    and (actual_board == 159 or (actual_board > 159 and (actual_board - 159) % 256 == 0))
+    and (actual_board == rbs_trigger
+      or (actual_board > rbs_trigger and (actual_board - rbs_trigger) % config.loop_size == 0))
   then
     dk3_rbs_count = dk3_rbs_count + 1
     local rbs_score = total_score - dk3_loop_start_score
@@ -920,6 +1012,7 @@ local function record_board_dk3(
       rbs_num = dk3_rbs_count,
       total_score = total_score,
       rbs_score = rbs_score,
+      frame = frame_count,
     })
 
     print(
@@ -933,9 +1026,9 @@ local function record_board_dk3(
     )
   end
 
-  -- Check for loop completion (board 256, 512, 768, etc. = memory board 0)
-  if not is_death and actual_board % 256 == 0 and actual_board > 0 then
-    local loop_num = actual_board / 256 -- Which loop just completed (1, 2, 3, etc.)
+  -- Check for loop completion (every loop_size boards = memory board 0)
+  if not is_death and actual_board % config.loop_size == 0 and actual_board > 0 then
+    local loop_num = actual_board / config.loop_size -- Which loop just completed (1, 2, 3, etc.)
     local loop_score = total_score - dk3_loop_start_score
 
     -- Store milestone data
@@ -943,6 +1036,7 @@ local function record_board_dk3(
       loop_num = loop_num,
       total_score = total_score,
       loop_score = loop_score,
+      frame = frame_count,
     })
 
     print(
@@ -2190,7 +2284,7 @@ end
 -- MAIN FRAME LOOP - PLATFORMER GAMES (DK/DKJR/CK)
 -- ============================================================================
 local function on_frame_platformer()
-  frame_count = frame_count + 1
+  frame_count = read_frame_number() + 1
 
   local config = get_config()
 
@@ -2356,6 +2450,7 @@ local function on_frame_platformer()
     death_pending_screen_type = screen_type
     death_pending_level = level
     death_pending_position = level_position[level]
+    death_pending_bonus = read_bonus_timer()
   end
 
   -- GAME OVER
@@ -2398,7 +2493,7 @@ end
 -- MAIN FRAME LOOP - DONKEY KONG 3
 -- ============================================================================
 local function on_frame_dkong3()
-  frame_count = frame_count + 1
+  frame_count = read_frame_number() + 1
 
   local config = get_config()
   local game_mode = read_byte(config.addresses.game_mode)
@@ -2557,7 +2652,7 @@ local function on_frame_dkong3()
     )
 
     -- After recording board 256, 512, 768, etc., increment loop counter and set new loop_start_score
-    if dk3_actual_board_num % 256 == 0 then
+    if dk3_actual_board_num % config.loop_size == 0 then
       dk3_current_loop = dk3_current_loop + 1
       dk3_loop_start_score = current_score
     end
@@ -2576,6 +2671,7 @@ local function on_frame_dkong3()
     dk3_death_pending_level = level
     -- Capture lives at detection time (haven't decremented in memory yet)
     dk3_death_pending_lives_at_death = lives > 0 and (lives - 1) or 0
+    dk3_death_pending_bonus = read_bonus_timer()
   end
 
   -- GAME OVER
