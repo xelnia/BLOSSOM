@@ -35,7 +35,6 @@ local death_pending_level = 0
 local death_pending_position = 0
 local death_pending_bonus = 0
 
-
 -- Best/Worst stage and level tracking (platformer games only)
 -- Indexed by screen type (1-4) to match screen_sum/screen_count pattern
 local screen_scores = {
@@ -97,3 +96,19 @@ local start_frame = nil -- Frame number when gameplay started
 local end_frame = nil -- Frame number when gameplay ended
 local prev_start_state = false -- Previous frame's start button state (for edge detection)
 local prev_coin_state = false -- Previous frame's coin button state (for edge detection)
+
+-- Score milestones (all games)
+local score_milestones = {} -- {score, frame} entries at every 100K
+local next_score_milestone = 100000
+
+-- Standard timing (VRAM-based)
+local start_phase_end_frame = nil -- VRAM level digit change
+local game_over_vram_frame = nil -- VRAM "G" tile appearance
+
+-- Speedrun timing (DK/DKJR/CK only)
+local speedrun_start_frame = nil -- First position change + 1
+local speedrun_end_frame = nil -- Rivet/key clear - 1 (start) or killscreen + 2 (full)
+local spawn_x = nil -- Spawn position for movement detection
+local spawn_y = nil
+local clear_screen_gameplay_seen = false -- True once gameplay mode seen on start level clear screen
+local killscreen_frame = nil -- Killscreen trigger + 3 (visual death frame)

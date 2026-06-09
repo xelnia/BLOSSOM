@@ -8,7 +8,8 @@ local function record_board_dk3(
   is_death,
   death_num,
   lives_remaining,
-  screen_type
+  screen_type,
+  bonus_timer
 )
   local board_info = {
     screen_num = screen_num,
@@ -24,6 +25,7 @@ local function record_board_dk3(
     lives = lives_remaining,
     avg_type = nil,
     avg_value = nil,
+    bonus_timer = bonus_timer,
   }
 
   table.insert(stage_data, board_info)
@@ -59,15 +61,18 @@ local function record_board_dk3(
 
   -- Console output
   if is_death then
+    local timer_str = bonus_timer and string.format(" | Timer: %s", format_number(bonus_timer))
+      or ""
     print(
       string.format(
-        "*** Death #%d - Board %s [%s] *** | Death Points: %s | Total Score: %s | Lives: %d",
+        "*** Death #%d - Board %s [%s] *** | Death Points: %s | Total Score: %s | Lives: %d%s",
         death_num,
         board_info.board,
         board_info.screen_type,
         format_number(score_earned),
         format_number(total_score),
-        lives_remaining
+        lives_remaining,
+        timer_str
       )
     )
   else
@@ -108,8 +113,10 @@ local function record_board_dk3(
   local rbs_trigger = config.rbs_milestone - 1
   if
     not is_death
-    and (actual_board == rbs_trigger
-      or (actual_board > rbs_trigger and (actual_board - rbs_trigger) % config.loop_size == 0))
+    and (
+      actual_board == rbs_trigger
+      or (actual_board > rbs_trigger and (actual_board - rbs_trigger) % config.loop_size == 0)
+    )
   then
     dk3_rbs_count = dk3_rbs_count + 1
     local rbs_score = total_score - dk3_loop_start_score
@@ -171,7 +178,8 @@ local function record_stage(
   total_score,
   is_death,
   death_num,
-  lives_remaining
+  lives_remaining,
+  bonus_timer
 )
   local stage_info = {
     screen_num = screen_num,
@@ -188,6 +196,7 @@ local function record_stage(
     avg_value = nil, -- Will store the calculated average
     pace = nil, -- Will store the calculated pace
     pace_22_4 = nil, -- Will store the 22-4 extended pace (ckongpt2 only)
+    bonus_timer = bonus_timer,
   }
 
   table.insert(stage_data, stage_info)
@@ -306,13 +315,16 @@ local function record_stage(
 
   -- Clean console output
   if is_death then
+    local timer_str = bonus_timer and string.format(" | Timer: %s", format_number(bonus_timer))
+      or ""
     print(
       string.format(
-        "*** Death #%d - Stage %s *** | Death Points: %s | Total Score: %s",
+        "*** Death #%d - Stage %s *** | Death Points: %s | Total Score: %s%s",
         death_num,
         stage_info.stage,
         format_number(score_earned),
-        format_number(total_score)
+        format_number(total_score),
+        timer_str
       )
     )
   else

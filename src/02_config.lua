@@ -48,6 +48,12 @@ local GAME_CONFIGS = {
       rivet_key_count = 0x6290,
       level_display_vram = 0x74A3, -- Level ones digit tile in VRAM
       level_display_tens_vram = 0x74C3, -- Level tens digit tile in VRAM
+      game_over_vram = 0x7696, -- VRAM tile for "G" in GAME OVER
+      -- KILLSCREEN DETECTION
+      bonus_timer_flag = 0x6386, -- Bonus timer runout flag
+      bonus_timer_secondary = 0x6387, -- Secondary countdown after runout
+      player_status = 0x6200, -- Player alive/dead status
+      jump_status = 0x6214, -- Jump flag
     },
 
     -- GAME MODES
@@ -82,6 +88,7 @@ local GAME_CONFIGS = {
     barrel_multiplier = 3,
     killscreen_level = 22,
     killscreen_stage = 1,
+    clear_screen_type = 4, -- Rivet screen
     supports_22_4_pace = false,
     -- INPUT DETECTION
     start_button_bit = 2,
@@ -114,6 +121,12 @@ local GAME_CONFIGS = {
       player_y = 0x6205,
       rivet_key_count = 0x6290,
       level_display_vram = 0x7484, -- Level digit tile in VRAM (single digit, no tens)
+      game_over_vram = 0x7696, -- VRAM tile for "G" in GAME OVER
+      -- KILLSCREEN DETECTION
+      bonus_timer_flag = 0x6386, -- Bonus timer runout flag
+      bonus_timer_secondary = 0x6387, -- Secondary countdown after runout
+      player_status = 0x6200, -- Player alive/dead status
+      jump_status = 0x6214, -- Jump flag
     },
 
     -- GAME MODES
@@ -148,6 +161,7 @@ local GAME_CONFIGS = {
     barrel_multiplier = 1,
     killscreen_level = 22,
     killscreen_stage = 1,
+    clear_screen_type = 3, -- Chain screen (key clear)
     level_display_bug = true,
     supports_22_4_pace = false,
     -- INPUT DETECTION
@@ -182,6 +196,12 @@ local GAME_CONFIGS = {
       rivet_key_count = 0x6290,
       level_display_vram = 0x9083, -- Level ones digit tile in VRAM
       level_display_tens_vram = 0x90A3, -- Level tens digit tile in VRAM
+      game_over_vram = 0x9296, -- VRAM tile for "G" in GAME OVER
+      -- KILLSCREEN DETECTION
+      bonus_timer_flag = 0x6386, -- Bonus timer runout flag
+      bonus_timer_secondary = 0x6387, -- Secondary countdown after runout
+      player_status = 0x6200, -- Player alive/dead status
+      jump_status = 0x6214, -- Jump flag
     },
 
     -- GAME MODES
@@ -216,6 +236,7 @@ local GAME_CONFIGS = {
     barrel_multiplier = 1,
     killscreen_level = 22,
     killscreen_stage = 1,
+    clear_screen_type = 4, -- Rivet screen
     supports_22_4_pace = true,
     -- INPUT DETECTION
     start_button_bit = 2,
@@ -249,6 +270,7 @@ local GAME_CONFIGS = {
       bonus_timer = 0x68C2,
       player_x = 0x6107,
       player_y = 0x6109,
+      game_over_vram = 0x7629, -- VRAM tile for "G" in GAME OVER
     },
 
     -- GAME MODES

@@ -183,6 +183,12 @@ local GAME_CONFIGS = {
       rivet_key_count = 0x6290,
       level_display_vram = 0x74A3, -- Level ones digit tile in VRAM
       level_display_tens_vram = 0x74C3, -- Level tens digit tile in VRAM
+      game_over_vram = 0x7696, -- VRAM tile for "G" in GAME OVER
+      -- KILLSCREEN DETECTION
+      bonus_timer_flag = 0x6386, -- Bonus timer runout flag
+      bonus_timer_secondary = 0x6387, -- Secondary countdown after runout
+      player_status = 0x6200, -- Player alive/dead status
+      jump_status = 0x6214, -- Jump flag
     },
 
     -- GAME MODES
@@ -217,6 +223,7 @@ local GAME_CONFIGS = {
     barrel_multiplier = 3,
     killscreen_level = 22,
     killscreen_stage = 1,
+    clear_screen_type = 4, -- Rivet screen
     supports_22_4_pace = false,
     -- INPUT DETECTION
     start_button_bit = 2,
@@ -249,6 +256,12 @@ local GAME_CONFIGS = {
       player_y = 0x6205,
       rivet_key_count = 0x6290,
       level_display_vram = 0x7484, -- Level digit tile in VRAM (single digit, no tens)
+      game_over_vram = 0x7696, -- VRAM tile for "G" in GAME OVER
+      -- KILLSCREEN DETECTION
+      bonus_timer_flag = 0x6386, -- Bonus timer runout flag
+      bonus_timer_secondary = 0x6387, -- Secondary countdown after runout
+      player_status = 0x6200, -- Player alive/dead status
+      jump_status = 0x6214, -- Jump flag
     },
 
     -- GAME MODES
@@ -283,6 +296,7 @@ local GAME_CONFIGS = {
     barrel_multiplier = 1,
     killscreen_level = 22,
     killscreen_stage = 1,
+    clear_screen_type = 3, -- Chain screen (key clear)
     level_display_bug = true,
     supports_22_4_pace = false,
     -- INPUT DETECTION
@@ -317,6 +331,12 @@ local GAME_CONFIGS = {
       rivet_key_count = 0x6290,
       level_display_vram = 0x9083, -- Level ones digit tile in VRAM
       level_display_tens_vram = 0x90A3, -- Level tens digit tile in VRAM
+      game_over_vram = 0x9296, -- VRAM tile for "G" in GAME OVER
+      -- KILLSCREEN DETECTION
+      bonus_timer_flag = 0x6386, -- Bonus timer runout flag
+      bonus_timer_secondary = 0x6387, -- Secondary countdown after runout
+      player_status = 0x6200, -- Player alive/dead status
+      jump_status = 0x6214, -- Jump flag
     },
 
     -- GAME MODES
@@ -351,6 +371,7 @@ local GAME_CONFIGS = {
     barrel_multiplier = 1,
     killscreen_level = 22,
     killscreen_stage = 1,
+    clear_screen_type = 4, -- Rivet screen
     supports_22_4_pace = true,
     -- INPUT DETECTION
     start_button_bit = 2,
@@ -384,6 +405,7 @@ local GAME_CONFIGS = {
       bonus_timer = 0x68C2,
       player_x = 0x6107,
       player_y = 0x6109,
+      game_over_vram = 0x7629, -- VRAM tile for "G" in GAME OVER
     },
 
     -- GAME MODES
@@ -470,7 +492,6 @@ local death_pending_level = 0
 local death_pending_position = 0
 local death_pending_bonus = 0
 
-
 -- Best/Worst stage and level tracking (platformer games only)
 -- Indexed by screen type (1-4) to match screen_sum/screen_count pattern
 local screen_scores = {
@@ -532,6 +553,22 @@ local start_frame = nil -- Frame number when gameplay started
 local end_frame = nil -- Frame number when gameplay ended
 local prev_start_state = false -- Previous frame's start button state (for edge detection)
 local prev_coin_state = false -- Previous frame's coin button state (for edge detection)
+
+-- Score milestones (all games)
+local score_milestones = {} -- {score, frame} entries at every 100K
+local next_score_milestone = 100000
+
+-- Standard timing (VRAM-based)
+local start_phase_end_frame = nil -- VRAM level digit change
+local game_over_vram_frame = nil -- VRAM "G" tile appearance
+
+-- Speedrun timing (DK/DKJR/CK only)
+local speedrun_start_frame = nil -- First position change + 1
+local speedrun_end_frame = nil -- Rivet/key clear - 1 (start) or killscreen + 2 (full)
+local spawn_x = nil -- Spawn position for movement detection
+local spawn_y = nil
+local clear_screen_gameplay_seen = false -- True once gameplay mode seen on start level clear screen
+local killscreen_frame = nil -- Killscreen trigger + 3 (visual death frame)
 
 -- ============================================================================
 -- OUTPUT CONFIGURATIONS
@@ -901,7 +938,8 @@ local function record_board_dk3(
   is_death,
   death_num,
   lives_remaining,
-  screen_type
+  screen_type,
+  bonus_timer
 )
   local board_info = {
     screen_num = screen_num,
@@ -917,6 +955,7 @@ local function record_board_dk3(
     lives = lives_remaining,
     avg_type = nil,
     avg_value = nil,
+    bonus_timer = bonus_timer,
   }
 
   table.insert(stage_data, board_info)
@@ -952,15 +991,18 @@ local function record_board_dk3(
 
   -- Console output
   if is_death then
+    local timer_str = bonus_timer and string.format(" | Timer: %s", format_number(bonus_timer))
+      or ""
     print(
       string.format(
-        "*** Death #%d - Board %s [%s] *** | Death Points: %s | Total Score: %s | Lives: %d",
+        "*** Death #%d - Board %s [%s] *** | Death Points: %s | Total Score: %s | Lives: %d%s",
         death_num,
         board_info.board,
         board_info.screen_type,
         format_number(score_earned),
         format_number(total_score),
-        lives_remaining
+        lives_remaining,
+        timer_str
       )
     )
   else
@@ -1001,8 +1043,10 @@ local function record_board_dk3(
   local rbs_trigger = config.rbs_milestone - 1
   if
     not is_death
-    and (actual_board == rbs_trigger
-      or (actual_board > rbs_trigger and (actual_board - rbs_trigger) % config.loop_size == 0))
+    and (
+      actual_board == rbs_trigger
+      or (actual_board > rbs_trigger and (actual_board - rbs_trigger) % config.loop_size == 0)
+    )
   then
     dk3_rbs_count = dk3_rbs_count + 1
     local rbs_score = total_score - dk3_loop_start_score
@@ -1064,7 +1108,8 @@ local function record_stage(
   total_score,
   is_death,
   death_num,
-  lives_remaining
+  lives_remaining,
+  bonus_timer
 )
   local stage_info = {
     screen_num = screen_num,
@@ -1081,6 +1126,7 @@ local function record_stage(
     avg_value = nil, -- Will store the calculated average
     pace = nil, -- Will store the calculated pace
     pace_22_4 = nil, -- Will store the 22-4 extended pace (ckongpt2 only)
+    bonus_timer = bonus_timer,
   }
 
   table.insert(stage_data, stage_info)
@@ -1199,13 +1245,16 @@ local function record_stage(
 
   -- Clean console output
   if is_death then
+    local timer_str = bonus_timer and string.format(" | Timer: %s", format_number(bonus_timer))
+      or ""
     print(
       string.format(
-        "*** Death #%d - Stage %s *** | Death Points: %s | Total Score: %s",
+        "*** Death #%d - Stage %s *** | Death Points: %s | Total Score: %s%s",
         death_num,
         stage_info.stage,
         format_number(score_earned),
-        format_number(total_score)
+        format_number(total_score),
+        timer_str
       )
     )
   else
@@ -2057,6 +2106,7 @@ local function print_platformer_summary(header_text, current_score)
   if final_stage ~= "" then
     print(string.format("Final Stage: %s", final_stage))
   end
+  print(string.format("Total Screens: %d", current_screen_num))
 
   -- Show pace based on game type and final stage
   if final_level and last_pace then
@@ -2163,6 +2213,7 @@ local function print_dk3_summary(header_text, current_score)
   if final_board ~= "" then
     print(string.format("Final Board: %s", final_board))
   end
+  print(string.format("Total Boards Reached: %d", dk3_actual_board_num + 1))
 
   -- Display playing time if we have valid start/end frames
   if start_frame and end_frame then
@@ -2284,7 +2335,7 @@ end
 -- MAIN FRAME LOOP - PLATFORMER GAMES (DK/DKJR/CK)
 -- ============================================================================
 local function on_frame_platformer()
-  frame_count = read_frame_number() + 1
+  frame_count = read_frame_number()
 
   local config = get_config()
 
@@ -2313,7 +2364,8 @@ local function on_frame_platformer()
       current_score,
       true,
       death_count,
-      lives
+      lives,
+      death_pending_bonus
     )
 
     last_stage_was_completed = false
@@ -2359,6 +2411,119 @@ local function on_frame_platformer()
     -- Update previous states for next frame's edge detection
     prev_coin_state = current_coin_state
     prev_start_state = current_start_state
+  end
+
+  -- SCORE MILESTONE TRACKING
+  if gameplay_started then
+    local current_score = read_score_with_rollover_check()
+    while current_score >= next_score_milestone do
+      table.insert(score_milestones, { score = next_score_milestone, frame = frame_count })
+      print(
+        string.format(
+          "  *** %s Milestone (Frame %d) ***",
+          format_number(next_score_milestone),
+          frame_count
+        )
+      ) --TEST, REMOVE LATER
+      next_score_milestone = next_score_milestone + 100000
+    end
+  end
+
+  -- START PHASE END DETECTION (VRAM-based, platformer only)
+  -- Captures the frame when the on-screen level indicator changes to start_level + 1
+  -- Uses VRAM tile (not internal level byte) for visual timing consistency
+  if not start_phase_end_frame and gameplay_started then
+    local vram_tile = read_byte(config.addresses.level_display_vram)
+    if vram_tile == config.start_level + 1 then
+      start_phase_end_frame = frame_count
+      print(
+        string.format(
+          "  [DEBUG] Start phase end detected (Frame %d, VRAM tile=0x%02X)",
+          frame_count,
+          vram_tile
+        )
+      )
+    end
+  end
+
+  -- SPEEDRUN START: First position change (memory leads visual by 1 frame)
+  if game_mode == config.modes.gameplay and not speedrun_start_frame then
+    local px = read_byte(config.addresses.player_x)
+    local py = read_byte(config.addresses.player_y)
+    if not spawn_x then
+      -- First gameplay frame: capture spawn position
+      spawn_x = px
+      spawn_y = py
+    elseif px ~= spawn_x or py ~= spawn_y then
+      speedrun_start_frame = frame_count + 1
+      print(
+        string.format(
+          "  [DEBUG] Speedrun start: Frame %d (memory frame %d, spawn=%d,%d → %d,%d)",
+          speedrun_start_frame,
+          frame_count,
+          spawn_x,
+          spawn_y,
+          px,
+          py
+        )
+      )
+    end
+  end
+
+  -- SPEEDRUN END: Rivet/key clear on start level (all clear = count reaches 0)
+  -- Phase 1: Wait for gameplay (0x0C) on the clear screen to start checking
+  -- Phase 2: Once gameplay seen, check for rivet=0 (mode may have already left gameplay)
+  if
+    gameplay_started
+    and not speedrun_end_frame
+    and level == config.start_level
+    and screen_type == config.clear_screen_type
+  then
+    if game_mode == config.modes.gameplay then
+      clear_screen_gameplay_seen = true
+    end
+    if clear_screen_gameplay_seen then
+      local rivet_count = read_byte(config.addresses.rivet_key_count)
+      if rivet_count == 0 then
+        speedrun_end_frame = frame_count
+        print(
+          string.format(
+            "  [DEBUG] Speedrun end: rivet/key clear (Frame %d, level=%d, screen_type=%d)",
+            frame_count,
+            level,
+            screen_type
+          )
+        )
+      end
+    end
+  end
+
+  -- KILLSCREEN DETECTION: 4-address state machine (DK/DKJR/CK)
+  -- Fires when bonus timer runout reaches final state with player alive and grounded
+  -- Visual death occurs 3 frames after internal trigger
+  if
+    game_mode == config.modes.gameplay
+    and not killscreen_frame
+    and level == config.killscreen_level
+  then
+    local ks_flag = read_byte(config.addresses.bonus_timer_flag)
+    local ks_secondary = read_byte(config.addresses.bonus_timer_secondary)
+    local ks_player = read_byte(config.addresses.player_status)
+    local ks_jump = read_byte(config.addresses.jump_status)
+    if ks_flag == 0x03 and ks_secondary == 0x00 and ks_player == 0x01 and ks_jump ~= 0x01 then
+      killscreen_frame = frame_count + 3
+      print(
+        string.format(
+          "  [DEBUG] Killscreen detected: trigger frame %d, visual death frame %d (flag=%02X sec=%02X player=%02X jump=%02X)",
+          frame_count,
+          killscreen_frame,
+          ks_flag,
+          ks_secondary,
+          ks_player,
+          ks_jump
+        )
+      )
+    end
   end
 
   -- Initialize stage_start_score on first gameplay
@@ -2432,7 +2597,8 @@ local function on_frame_platformer()
       current_score,
       false,
       nil,
-      lives
+      lives,
+      nil
     )
 
     -- Add to level score (only for completed stages, not deaths)
@@ -2468,6 +2634,22 @@ local function on_frame_platformer()
       end_frame = frame_count - 1
     end
 
+    -- Capture VRAM-based game over timing
+    if not game_over_vram_frame then
+      local vram_tile = read_byte(config.addresses.game_over_vram)
+      if vram_tile == 0x17 then
+        game_over_vram_frame = frame_count
+      end
+      print(
+        string.format(
+          "  [DEBUG] Game Over VRAM: tile=0x%02X, end_frame=%d, vram_frame=%s (expect end_frame+1)",
+          vram_tile,
+          end_frame,
+          game_over_vram_frame and tostring(game_over_vram_frame) or "nil"
+        )
+      )
+    end
+
     -- Only record final level total if NOT on killscreen death
     local is_killscreen = (current_level_being_played == 22 and level_position[22] == 1)
 
@@ -2493,7 +2675,7 @@ end
 -- MAIN FRAME LOOP - DONKEY KONG 3
 -- ============================================================================
 local function on_frame_dkong3()
-  frame_count = read_frame_number() + 1
+  frame_count = read_frame_number()
 
   local config = get_config()
   local game_mode = read_byte(config.addresses.game_mode)
@@ -2541,7 +2723,8 @@ local function on_frame_dkong3()
         true,
         death_count,
         dk3_death_pending_lives_at_death,
-        dk3_death_pending_screen_type
+        dk3_death_pending_screen_type,
+        dk3_death_pending_bonus
       )
 
       -- Record life performance
@@ -2608,6 +2791,25 @@ local function on_frame_dkong3()
     prev_start_state = current_start_state
   end
 
+  -- SCORE MILESTONE TRACKING
+  if gameplay_started then
+    local current_score = read_score_with_rollover_check()
+    while current_score >= next_score_milestone do
+      table.insert(score_milestones, { score = next_score_milestone, frame = frame_count })
+      print(
+        string.format(
+          "  *** %s Milestone (Frame %d) ***",
+          format_number(next_score_milestone),
+          frame_count
+        )
+      ) --TEST, REMOVE LATER
+      next_score_milestone = next_score_milestone + 100000
+    end
+  end
+
+  -- SPEEDRUN START: Deferred for DK3 (no established speedrun category)
+  -- Requires button press detection in addition to position change
+
   -- BOARD START: Entering gameplay
   if dk3_prev_game_mode ~= config.modes.gameplay and game_mode == config.modes.gameplay then
     local current_score = read_score_with_rollover_check()
@@ -2648,7 +2850,8 @@ local function on_frame_dkong3()
       false,
       nil,
       lives,
-      dk3_completed_screen_type
+      dk3_completed_screen_type,
+      nil
     )
 
     -- After recording board 256, 512, 768, etc., increment loop counter and set new loop_start_score
@@ -2688,6 +2891,22 @@ local function on_frame_dkong3()
     -- Capture end frame for duration calculation
     if not end_frame then
       end_frame = frame_count - 1
+    end
+
+    -- Capture VRAM-based game over timing
+    if not game_over_vram_frame then
+      local vram_tile = read_byte(config.addresses.game_over_vram)
+      if vram_tile == 0x17 then
+        game_over_vram_frame = frame_count
+      end
+      print(
+        string.format(
+          "  [DEBUG] Game Over VRAM: tile=0x%02X, end_frame=%d, vram_frame=%s (expect end_frame+1)",
+          vram_tile,
+          end_frame,
+          game_over_vram_frame and tostring(game_over_vram_frame) or "nil"
+        )
+      )
     end
 
     print_dk3_summary("GAME OVER", current_score)

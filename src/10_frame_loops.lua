@@ -2,7 +2,7 @@
 -- MAIN FRAME LOOP - PLATFORMER GAMES (DK/DKJR/CK)
 -- ============================================================================
 local function on_frame_platformer()
-  frame_count = read_frame_number() + 1
+  frame_count = read_frame_number()
 
   local config = get_config()
 
@@ -31,7 +31,8 @@ local function on_frame_platformer()
       current_score,
       true,
       death_count,
-      lives
+      lives,
+      death_pending_bonus
     )
 
     last_stage_was_completed = false
@@ -77,6 +78,119 @@ local function on_frame_platformer()
     -- Update previous states for next frame's edge detection
     prev_coin_state = current_coin_state
     prev_start_state = current_start_state
+  end
+
+  -- SCORE MILESTONE TRACKING
+  if gameplay_started then
+    local current_score = read_score_with_rollover_check()
+    while current_score >= next_score_milestone do
+      table.insert(score_milestones, { score = next_score_milestone, frame = frame_count })
+      print(
+        string.format(
+          "  *** %s Milestone (Frame %d) ***",
+          format_number(next_score_milestone),
+          frame_count
+        )
+      ) --TEST, REMOVE LATER
+      next_score_milestone = next_score_milestone + 100000
+    end
+  end
+
+  -- START PHASE END DETECTION (VRAM-based, platformer only)
+  -- Captures the frame when the on-screen level indicator changes to start_level + 1
+  -- Uses VRAM tile (not internal level byte) for visual timing consistency
+  if not start_phase_end_frame and gameplay_started then
+    local vram_tile = read_byte(config.addresses.level_display_vram)
+    if vram_tile == config.start_level + 1 then
+      start_phase_end_frame = frame_count
+      print(
+        string.format(
+          "  [DEBUG] Start phase end detected (Frame %d, VRAM tile=0x%02X)",
+          frame_count,
+          vram_tile
+        )
+      )
+    end
+  end
+
+  -- SPEEDRUN START: First position change (memory leads visual by 1 frame)
+  if game_mode == config.modes.gameplay and not speedrun_start_frame then
+    local px = read_byte(config.addresses.player_x)
+    local py = read_byte(config.addresses.player_y)
+    if not spawn_x then
+      -- First gameplay frame: capture spawn position
+      spawn_x = px
+      spawn_y = py
+    elseif px ~= spawn_x or py ~= spawn_y then
+      speedrun_start_frame = frame_count + 1
+      print(
+        string.format(
+          "  [DEBUG] Speedrun start: Frame %d (memory frame %d, spawn=%d,%d → %d,%d)",
+          speedrun_start_frame,
+          frame_count,
+          spawn_x,
+          spawn_y,
+          px,
+          py
+        )
+      )
+    end
+  end
+
+  -- SPEEDRUN END: Rivet/key clear on start level (all clear = count reaches 0)
+  -- Phase 1: Wait for gameplay (0x0C) on the clear screen to start checking
+  -- Phase 2: Once gameplay seen, check for rivet=0 (mode may have already left gameplay)
+  if
+    gameplay_started
+    and not speedrun_end_frame
+    and level == config.start_level
+    and screen_type == config.clear_screen_type
+  then
+    if game_mode == config.modes.gameplay then
+      clear_screen_gameplay_seen = true
+    end
+    if clear_screen_gameplay_seen then
+      local rivet_count = read_byte(config.addresses.rivet_key_count)
+      if rivet_count == 0 then
+        speedrun_end_frame = frame_count
+        print(
+          string.format(
+            "  [DEBUG] Speedrun end: rivet/key clear (Frame %d, level=%d, screen_type=%d)",
+            frame_count,
+            level,
+            screen_type
+          )
+        )
+      end
+    end
+  end
+
+  -- KILLSCREEN DETECTION: 4-address state machine (DK/DKJR/CK)
+  -- Fires when bonus timer runout reaches final state with player alive and grounded
+  -- Visual death occurs 3 frames after internal trigger
+  if
+    game_mode == config.modes.gameplay
+    and not killscreen_frame
+    and level == config.killscreen_level
+  then
+    local ks_flag = read_byte(config.addresses.bonus_timer_flag)
+    local ks_secondary = read_byte(config.addresses.bonus_timer_secondary)
+    local ks_player = read_byte(config.addresses.player_status)
+    local ks_jump = read_byte(config.addresses.jump_status)
+    if ks_flag == 0x03 and ks_secondary == 0x00 and ks_player == 0x01 and ks_jump ~= 0x01 then
+      killscreen_frame = frame_count + 3
+      print(
+        string.format(
+          "  [DEBUG] Killscreen detected: trigger frame %d, visual death frame %d (flag=%02X sec=%02X player=%02X jump=%02X)",
+          frame_count,
+          killscreen_frame,
+          ks_flag,
+          ks_secondary,
+          ks_player,
+          ks_jump
+        )
+      )
+    end
   end
 
   -- Initialize stage_start_score on first gameplay
@@ -150,7 +264,8 @@ local function on_frame_platformer()
       current_score,
       false,
       nil,
-      lives
+      lives,
+      nil
     )
 
     -- Add to level score (only for completed stages, not deaths)
@@ -186,6 +301,22 @@ local function on_frame_platformer()
       end_frame = frame_count - 1
     end
 
+    -- Capture VRAM-based game over timing
+    if not game_over_vram_frame then
+      local vram_tile = read_byte(config.addresses.game_over_vram)
+      if vram_tile == 0x17 then
+        game_over_vram_frame = frame_count
+      end
+      print(
+        string.format(
+          "  [DEBUG] Game Over VRAM: tile=0x%02X, end_frame=%d, vram_frame=%s (expect end_frame+1)",
+          vram_tile,
+          end_frame,
+          game_over_vram_frame and tostring(game_over_vram_frame) or "nil"
+        )
+      )
+    end
+
     -- Only record final level total if NOT on killscreen death
     local is_killscreen = (current_level_being_played == 22 and level_position[22] == 1)
 
@@ -211,7 +342,7 @@ end
 -- MAIN FRAME LOOP - DONKEY KONG 3
 -- ============================================================================
 local function on_frame_dkong3()
-  frame_count = read_frame_number() + 1
+  frame_count = read_frame_number()
 
   local config = get_config()
   local game_mode = read_byte(config.addresses.game_mode)
@@ -259,7 +390,8 @@ local function on_frame_dkong3()
         true,
         death_count,
         dk3_death_pending_lives_at_death,
-        dk3_death_pending_screen_type
+        dk3_death_pending_screen_type,
+        dk3_death_pending_bonus
       )
 
       -- Record life performance
@@ -326,6 +458,25 @@ local function on_frame_dkong3()
     prev_start_state = current_start_state
   end
 
+  -- SCORE MILESTONE TRACKING
+  if gameplay_started then
+    local current_score = read_score_with_rollover_check()
+    while current_score >= next_score_milestone do
+      table.insert(score_milestones, { score = next_score_milestone, frame = frame_count })
+      print(
+        string.format(
+          "  *** %s Milestone (Frame %d) ***",
+          format_number(next_score_milestone),
+          frame_count
+        )
+      ) --TEST, REMOVE LATER
+      next_score_milestone = next_score_milestone + 100000
+    end
+  end
+
+  -- SPEEDRUN START: Deferred for DK3 (no established speedrun category)
+  -- Requires button press detection in addition to position change
+
   -- BOARD START: Entering gameplay
   if dk3_prev_game_mode ~= config.modes.gameplay and game_mode == config.modes.gameplay then
     local current_score = read_score_with_rollover_check()
@@ -366,7 +517,8 @@ local function on_frame_dkong3()
       false,
       nil,
       lives,
-      dk3_completed_screen_type
+      dk3_completed_screen_type,
+      nil
     )
 
     -- After recording board 256, 512, 768, etc., increment loop counter and set new loop_start_score
@@ -406,6 +558,22 @@ local function on_frame_dkong3()
     -- Capture end frame for duration calculation
     if not end_frame then
       end_frame = frame_count - 1
+    end
+
+    -- Capture VRAM-based game over timing
+    if not game_over_vram_frame then
+      local vram_tile = read_byte(config.addresses.game_over_vram)
+      if vram_tile == 0x17 then
+        game_over_vram_frame = frame_count
+      end
+      print(
+        string.format(
+          "  [DEBUG] Game Over VRAM: tile=0x%02X, end_frame=%d, vram_frame=%s (expect end_frame+1)",
+          vram_tile,
+          end_frame,
+          game_over_vram_frame and tostring(game_over_vram_frame) or "nil"
+        )
+      )
     end
 
     print_dk3_summary("GAME OVER", current_score)

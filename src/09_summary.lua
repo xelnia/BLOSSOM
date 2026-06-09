@@ -28,6 +28,7 @@ local function print_platformer_summary(header_text, current_score)
   if final_stage ~= "" then
     print(string.format("Final Stage: %s", final_stage))
   end
+  print(string.format("Total Screens: %d", current_screen_num))
 
   -- Show pace based on game type and final stage
   if final_level and last_pace then
@@ -134,6 +135,7 @@ local function print_dk3_summary(header_text, current_score)
   if final_board ~= "" then
     print(string.format("Final Board: %s", final_board))
   end
+  print(string.format("Total Boards Reached: %d", dk3_actual_board_num + 1))
 
   -- Display playing time if we have valid start/end frames
   if start_frame and end_frame then

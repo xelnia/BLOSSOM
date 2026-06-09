@@ -54,4 +54,3 @@ create_output_directory()
 CSV_FILE = "blossom_logs/" .. CSV_FILE
 JSON_FILE = "blossom_logs/" .. JSON_FILE
 TEXT_FILE = "blossom_logs/" .. TEXT_FILE
-
