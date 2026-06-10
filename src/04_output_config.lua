@@ -2,11 +2,6 @@
 -- OUTPUT CONFIGURATIONS
 -- ============================================================================
 
--- OUTPUT CONFIGURATION
-local EXPORT_CSV = true
-local EXPORT_JSON = true
-local EXPORT_TEXT = true
-
 -- Get INP filename for display (strips path if present)
 local function get_inp_filename()
   local playback_file = mame_options.entries["playback"]:value()

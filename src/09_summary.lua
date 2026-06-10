@@ -21,9 +21,9 @@ local function print_platformer_summary(header_text, current_score)
   print(string.format("\n=== %s ===", header_text))
   -- Display playing time if we have valid start/end frames
   if start_frame and (game_over_vram_frame or end_frame) then
-    local end_f = game_over_vram_frame or end_frame
-    local duration_frames = end_f - start_frame
-    print(string.format("Unofficial Playing Time: %s", format_duration(duration_frames)))
+    local final_frame = game_over_vram_frame or end_frame
+    local duration_frames = final_frame - start_frame
+    print(string.format("Playing Time: %s", format_duration(duration_frames)))
   end
   print(string.format("Final Score: %s", format_number(current_score)))
   if final_stage ~= "" then
@@ -122,8 +122,64 @@ local function print_platformer_summary(header_text, current_score)
     )
   end
 
-  print(string.format("Death Count: %d", death_count))
+  print(string.format("Recorded Deaths: %d", death_count))
   print(string.format("Total Death Points: %s", format_number(total_death_points)))
+
+  -- Timing summary
+  print("")
+
+  if speedrun_start_frame and speedrun_end_frame then
+    local dur = speedrun_end_frame - speedrun_start_frame
+    print(
+      string.format(
+        "Speedrun Start: Frame %s - %s (%s frames) | %s",
+        format_number(speedrun_start_frame),
+        format_number(speedrun_end_frame),
+        format_number(dur),
+        format_duration(dur)
+      )
+    )
+  end
+
+  if start_frame and start_phase_end_frame then
+    local dur = start_phase_end_frame - start_frame
+    print(
+      string.format(
+        "Standard Start: Frame %s - %s (%s frames) | %s",
+        format_number(start_frame),
+        format_number(start_phase_end_frame),
+        format_number(dur),
+        format_duration(dur)
+      )
+    )
+  end
+
+  if speedrun_start_frame and killscreen_frame then
+    local dur = killscreen_frame - speedrun_start_frame
+    print(
+      string.format(
+        "Speedrun Killscreen: Frame %s - %s (%s frames) | %s",
+        format_number(speedrun_start_frame),
+        format_number(killscreen_frame),
+        format_number(dur),
+        format_duration(dur)
+      )
+    )
+  end
+
+  if start_frame and (game_over_vram_frame or end_frame) then
+    local final_frame = game_over_vram_frame or end_frame
+    local dur = final_frame - start_frame
+    print(
+      string.format(
+        "Full Game: Frame %s - %s (%s frames) | %s",
+        format_number(start_frame),
+        format_number(final_frame),
+        format_number(dur),
+        format_duration(dur)
+      )
+    )
+  end
 end
 
 -- Helper to print Game Over / Session Ended summary for DK3
@@ -147,7 +203,6 @@ local function print_dk3_summary(header_text, current_score)
   if final_board ~= "" then
     print(string.format("Final Board: %s", final_board))
   end
-  print(string.format("Total Boards Reached: %d", dk3_actual_board_num + 1))
 
   -- Display RBS milestones
   for _, rbs in ipairs(dk3_rbs_milestones) do
@@ -194,9 +249,9 @@ local function print_dk3_summary(header_text, current_score)
   if life_stats then
     print("") -- Blank line before life stats
 
-    -- Only show Total Lives for Marathon variations (redundant for 5 Lives)
+    -- Only show Recorded Lives for Marathon variations (redundant for 5 Lives)
     if game_variation and not game_variation:match("5 Lives") then
-      print(string.format("Total Lives: %d", life_stats.total_lives))
+      print(string.format("Recorded Lives (starting + earned): %d", life_stats.total_lives))
     end
 
     print(string.format("First Life Score: %s", format_number(life_stats.first_life_score)))
@@ -256,6 +311,56 @@ local function print_dk3_summary(header_text, current_score)
     print(string.format("Average Life (boards): %d", math.floor(life_stats.avg_boards)))
   end
 
-  print(string.format("Death Count: %d", death_count))
+  print(string.format("Recorded Deaths: %d", death_count))
   print(string.format("Total Death Points: %s", format_number(total_death_points)))
+
+  -- Timing summary
+  print("")
+
+  for _, md in ipairs(dk3_max_diff_milestones) do
+    local time_str = ""
+    if start_frame then
+      time_str = string.format(" | %s", format_duration(md.frame - start_frame))
+    end
+    print(
+      string.format("Max Difficulty %d: Frame %s%s", md.count, format_number(md.frame), time_str)
+    )
+  end
+
+  for _, rbs in ipairs(dk3_rbs_milestones) do
+    local time_str = ""
+    if start_frame then
+      time_str = string.format(" | %s", format_duration(rbs.frame - start_frame))
+    end
+    print(string.format("RBS %d: Frame %s%s", rbs.rbs_num, format_number(rbs.frame), time_str))
+  end
+
+  for _, loop in ipairs(dk3_loop_milestones) do
+    local time_str = ""
+    if start_frame then
+      time_str = string.format(" | %s", format_duration(loop.frame - start_frame))
+    end
+    print(
+      string.format(
+        "Loop %d Complete: Frame %s%s",
+        loop.loop_num,
+        format_number(loop.frame),
+        time_str
+      )
+    )
+  end
+
+  if start_frame and (game_over_vram_frame or end_frame) then
+    local final_frame = game_over_vram_frame or end_frame
+    local dur = final_frame - start_frame
+    print(
+      string.format(
+        "Full Game: Frame %s - %s (%s frames) | %s",
+        format_number(start_frame),
+        format_number(final_frame),
+        format_number(dur),
+        format_duration(dur)
+      )
+    )
+  end
 end

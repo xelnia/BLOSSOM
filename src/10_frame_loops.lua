@@ -67,6 +67,7 @@ local function on_frame_platformer()
       start_button_pressed = true
       if coin_inserted and not start_frame then
         start_frame = frame_count - 1
+        print(string.format("  [Timing] Start button: Frame %s", format_number(start_frame)))
       end
     end
 
@@ -90,25 +91,21 @@ local function on_frame_platformer()
         stage = get_stage_name(prev_level, level_position[prev_level] or 0),
         screen_num = current_screen_num,
         bonus_timer = read_bonus_timer(),
+        during_gameplay = (game_mode == config.modes.gameplay),
       })
+      local ms_time_str = ""
+      if start_frame then
+        ms_time_str = string.format(" - %s", format_duration(frame_count - start_frame))
+      end
       print(
         string.format(
-          "  *** %s Milestone (Frame %d) ***",
+          "  *** %s Milestone (Frame %s%s) ***",
           format_number(next_score_milestone),
-          frame_count
+          format_number(frame_count),
+          ms_time_str
         )
       )
       next_score_milestone = next_score_milestone + 100000
-    end
-  end
-
-  -- START PHASE END DETECTION (VRAM-based, platformer only)
-  -- Captures the frame when the on-screen level indicator changes to start_level + 1
-  -- Uses VRAM tile (not internal level byte) for visual timing consistency
-  if not start_phase_end_frame and gameplay_started then
-    local vram_tile = read_byte(config.addresses.level_display_vram)
-    if vram_tile == config.start_level + 1 then
-      start_phase_end_frame = frame_count
     end
   end
 
@@ -122,10 +119,13 @@ local function on_frame_platformer()
       spawn_y = py
     elseif px ~= spawn_x or py ~= spawn_y then
       speedrun_start_frame = frame_count + 1
+      print(
+        string.format("  [Timing] Speedrun start: Frame %s", format_number(speedrun_start_frame))
+      )
     end
   end
 
-  -- SPEEDRUN END: Rivet/key clear on start level (all clear = count reaches 0)
+  -- SPEEDRUN "START" END: Rivet/key clear on start level (all clear = count reaches 0)
   -- Phase 1: Wait for gameplay (0x0C) on the clear screen to start checking
   -- Phase 2: Once gameplay seen, check for rivet=0 (mode may have already left gameplay)
   if
@@ -141,7 +141,35 @@ local function on_frame_platformer()
       local rivet_count = read_byte(config.addresses.rivet_key_count)
       if rivet_count == 0 then
         speedrun_end_frame = frame_count
+        local sr_dur = speedrun_end_frame - speedrun_start_frame
+        print(
+          string.format(
+            "  [Timing] Start Speedrun End: Frame %s (%s frames - %s)",
+            format_number(speedrun_end_frame),
+            format_number(sr_dur),
+            format_duration(sr_dur)
+          )
+        )
       end
+    end
+  end
+
+  -- STANDARD "START" END DETECTION (VRAM-based, platformer only)
+  -- Captures the frame when the on-screen level indicator changes to start_level + 1
+  -- Uses VRAM tile (not internal level byte) for visual timing consistency
+  if not start_phase_end_frame and gameplay_started then
+    local vram_tile = read_byte(config.addresses.level_display_vram)
+    if vram_tile == config.start_level + 1 then
+      start_phase_end_frame = frame_count
+      local std_dur = start_phase_end_frame - start_frame
+      print(
+        string.format(
+          "  [Timing] Standard Start End: Frame %s (%s frames - %s)",
+          format_number(start_phase_end_frame),
+          format_number(std_dur),
+          format_duration(std_dur)
+        )
+      )
     end
   end
 
@@ -159,6 +187,15 @@ local function on_frame_platformer()
     local ks_jump = read_byte(config.addresses.jump_status)
     if ks_flag == 0x03 and ks_secondary == 0x00 and ks_player == 0x01 and ks_jump ~= 0x01 then
       killscreen_frame = frame_count + 3
+      local ks_dur = killscreen_frame - speedrun_start_frame
+      print(
+        string.format(
+          "  [Timing] Killscreen Speedrun End: Frame %s (%s frames - %s)",
+          format_number(killscreen_frame),
+          format_number(ks_dur),
+          format_duration(ks_dur)
+        )
+      )
     end
   end
 
@@ -256,6 +293,14 @@ local function on_frame_platformer()
     death_pending_bonus = read_bonus_timer()
   end
 
+  -- KNOWN EDGE CASE: Simultaneous death + stage completion (platformer)
+  -- If the player dies on the exact frame a stage completes, both stage_completed_mode
+  -- and death_pending will be set. The completion records first (transition detection),
+  -- then death settles when leaving dead mode. This can cause death points to include
+  -- the stage bonus, and the death may be attributed to the next stage. This is the
+  -- "extra man" bug: lives increment then immediately decrement, death stage is not
+  -- replayed. Extremely rare; needs testing.
+
   -- GAME OVER
   if
     game_mode == config.modes.game_over
@@ -276,6 +321,15 @@ local function on_frame_platformer()
       local vram_tile = read_byte(config.addresses.game_over_vram)
       if vram_tile == 0x17 then
         game_over_vram_frame = frame_count
+        local go_dur = game_over_vram_frame - start_frame
+        print(
+          string.format(
+            "  [Timing] Standard Game End: Frame %s (%s frames - %s)",
+            format_number(game_over_vram_frame),
+            format_number(go_dur),
+            format_duration(go_dur)
+          )
+        )
       end
     end
 
@@ -407,6 +461,7 @@ local function on_frame_dkong3()
       -- Subtract 1 because frame_count was incremented before we detected the press
       if coin_inserted and not start_frame then
         start_frame = frame_count - 1
+        print(string.format("  [Timing] Start button: Frame %s", format_number(start_frame)))
       end
     end
 
@@ -430,12 +485,18 @@ local function on_frame_dkong3()
         board = dk3_actual_board_num + 1,
         screen_num = current_screen_num,
         bonus_timer = read_bonus_timer(),
+        during_gameplay = (game_mode == config.modes.gameplay),
       })
+      local ms_time_str = ""
+      if start_frame then
+        ms_time_str = string.format(" - %s", format_duration(frame_count - start_frame))
+      end
       print(
         string.format(
-          "  *** %s Milestone (Frame %d) ***",
+          "  *** %s Milestone (Frame %s%s) ***",
           format_number(next_score_milestone),
-          frame_count
+          format_number(frame_count),
+          ms_time_str
         )
       )
       next_score_milestone = next_score_milestone + 100000
@@ -513,6 +574,14 @@ local function on_frame_dkong3()
     dk3_death_pending_bonus = read_bonus_timer()
   end
 
+  -- KNOWN EDGE CASE: Simultaneous death + stage completion (DK3)
+  -- If the player dies on the exact frame a stage completes, both dk3_stage_completed
+  -- and dk3_death_pending will be set. The completion records first (transition_1),
+  -- then death settles when dead_status returns to alive. This can cause death points
+  -- to include the stage bonus, and dk3_actual_board_num may have already incremented.
+  -- DK3 does NOT replay the death stage - the next board starts normally with lives
+  -- decremented. Extremely rare; needs testing.
+
   -- GAME OVER
   if
     (game_mode == config.modes.game_over_1 or game_mode == config.modes.game_over_2)
@@ -534,6 +603,15 @@ local function on_frame_dkong3()
       local vram_tile = read_byte(config.addresses.game_over_vram)
       if vram_tile == 0x17 then
         game_over_vram_frame = frame_count
+        local go_dur = game_over_vram_frame - start_frame
+        print(
+          string.format(
+            "  [Timing] Standard Game End: Frame %s (%s frames - %s)",
+            format_number(game_over_vram_frame),
+            format_number(go_dur),
+            format_duration(go_dur)
+          )
+        )
       end
     end
 

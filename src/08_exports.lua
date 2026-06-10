@@ -198,14 +198,12 @@ local function export_json()
     { "final_score", prev_score },
     { "final_level", final_level_str },
     { "final_stage", final_stage_num },
-    { "death_count", death_count },
+    { "recorded_deaths", death_count },
     { "total_death_points", total_death_points },
   }
 
   if GAME_TYPE == "dkong3" then
     -- DK3 scoring summary
-    table.insert(scoring_pairs, { "total_boards_reached", dk3_actual_board_num + 1 })
-
     -- Screen type averages (max difficulty only)
     if dk3_max_diff_count > 0 then
       local avg_pairs = {}
@@ -255,7 +253,7 @@ local function export_json()
     local life_stats = calculate_dk3_life_stats()
     if life_stats then
       local life_pairs = {
-        { "total_lives", life_stats.total_lives },
+        { "recorded_lives", life_stats.total_lives },
         { "first_life_score", life_stats.first_life_score },
         { "five_lives_score", life_stats.five_lives_score },
         { "last_life_score", life_stats.last_life_score },
@@ -498,6 +496,7 @@ local function export_json()
     local ms_pairs = {
       { "score", ms.score },
       { "frame", ms.frame },
+      { "time_from_start", start_frame and format_duration(ms.frame - start_frame) or nil },
     }
     if ms.stage then
       table.insert(ms_pairs, { "stage", ms.stage })
@@ -506,6 +505,7 @@ local function export_json()
     end
     table.insert(ms_pairs, { "screen_num", ms.screen_num })
     table.insert(ms_pairs, { "bonus_timer", ms.bonus_timer })
+    table.insert(ms_pairs, { "during_gameplay", ms.during_gameplay })
     table.insert(milestones_array, json_ordered(ms_pairs))
   end
 
@@ -641,8 +641,7 @@ local function export_text()
     if final_board ~= "" then
       file:write(string.format("Final Board: %s\n", final_board))
     end
-    file:write(string.format("Total Boards Reached: %d\n", dk3_actual_board_num + 1))
-    file:write(string.format("Death Count: %d\n", death_count))
+    file:write(string.format("Recorded Deaths: %d\n", death_count))
     file:write(string.format("Total Death Points: %s\n", format_number(total_death_points)))
 
     -- RBS milestones (score data)
@@ -691,7 +690,9 @@ local function export_text()
       file:write("\n")
 
       if game_variation and not game_variation:match("5 Lives") then
-        file:write(string.format("Total Lives: %d\n", life_stats.total_lives))
+        file:write(
+          string.format("Recorded Lives (starting + earned): %d\n", life_stats.total_lives)
+        )
       end
 
       file:write(
@@ -820,23 +821,33 @@ local function export_text()
     if #score_milestones > 0 then
       file:write("\nSCORE MILESTONES\n")
       for _, ms in ipairs(score_milestones) do
+        local time_str = ""
+        if start_frame then
+          time_str = string.format(" - %s", format_duration(ms.frame - start_frame))
+        end
         local board_str = ms.board and string.format(" | Board %d", ms.board) or ""
         local timer_str = ms.bonus_timer
             and string.format(" | Timer: %s", format_number(ms.bonus_timer))
           or ""
+        local phase_str = ""
+        if ms.during_gameplay == false then
+          phase_str = " [stage end]"
+        end
         file:write(
           string.format(
-            "%s (Frame %s)%s%s\n",
+            "%s (Frame %s%s)%s%s%s\n",
             format_number(ms.score),
             format_number(ms.frame),
+            time_str,
             board_str,
-            timer_str
+            timer_str,
+            phase_str
           )
         )
       end
     end
 
-    file:write("\n===================================\n\n")
+    file:write("\n===================================\n\nSTAGE DATA\n")
 
     -- Board data
     for _, board in ipairs(stage_data) do
@@ -905,7 +916,7 @@ local function export_text()
       file:write(string.format("Final Stage: %s\n", final_stage))
     end
     file:write(string.format("Total Screens: %d\n", current_screen_num))
-    file:write(string.format("Death Count: %d\n", death_count))
+    file:write(string.format("Recorded Deaths: %d\n", death_count))
     file:write(string.format("Total Death Points: %s\n", format_number(total_death_points)))
 
     -- Pace
@@ -1072,23 +1083,33 @@ local function export_text()
     if #score_milestones > 0 then
       file:write("\nSCORE MILESTONES\n")
       for _, ms in ipairs(score_milestones) do
+        local time_str = ""
+        if start_frame then
+          time_str = string.format(" - %s", format_duration(ms.frame - start_frame))
+        end
         local stage_str = ms.stage and string.format(" | %s", ms.stage) or ""
         local timer_str = ms.bonus_timer
             and string.format(" | Timer: %s", format_number(ms.bonus_timer))
           or ""
+        local phase_str = ""
+        if ms.during_gameplay == false then
+          phase_str = " [stage end]"
+        end
         file:write(
           string.format(
-            "%s (Frame %s)%s%s\n",
+            "%s (Frame %s%s)%s%s%s\n",
             format_number(ms.score),
             format_number(ms.frame),
+            time_str,
             stage_str,
-            timer_str
+            timer_str,
+            phase_str
           )
         )
       end
     end
 
-    file:write("\n===================================\n\n")
+    file:write("\n===================================\n\nSTAGE DATA\n")
 
     -- Per-stage data (unchanged from current format)
     local current_output_level = nil

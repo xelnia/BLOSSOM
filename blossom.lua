@@ -8,6 +8,11 @@
 
 local BLOSSOM_VERSION = "2.0.0"
 
+-- Export toggles: set to false to suppress specific output formats
+local EXPORT_CSV = true
+local EXPORT_JSON = true
+local EXPORT_TEXT = true
+
 -- ============================================================================
 -- MAME VERSION COMPATIBILITY LAYER
 -- ============================================================================
@@ -581,11 +586,6 @@ local killscreen_frame = nil -- Killscreen trigger + 3 (visual death frame)
 -- ============================================================================
 -- OUTPUT CONFIGURATIONS
 -- ============================================================================
-
--- OUTPUT CONFIGURATION
-local EXPORT_CSV = true
-local EXPORT_JSON = true
-local EXPORT_TEXT = true
 
 -- Get INP filename for display (strips path if present)
 local function get_inp_filename()
@@ -1657,14 +1657,12 @@ local function export_json()
     { "final_score", prev_score },
     { "final_level", final_level_str },
     { "final_stage", final_stage_num },
-    { "death_count", death_count },
+    { "recorded_deaths", death_count },
     { "total_death_points", total_death_points },
   }
 
   if GAME_TYPE == "dkong3" then
     -- DK3 scoring summary
-    table.insert(scoring_pairs, { "total_boards_reached", dk3_actual_board_num + 1 })
-
     -- Screen type averages (max difficulty only)
     if dk3_max_diff_count > 0 then
       local avg_pairs = {}
@@ -1714,7 +1712,7 @@ local function export_json()
     local life_stats = calculate_dk3_life_stats()
     if life_stats then
       local life_pairs = {
-        { "total_lives", life_stats.total_lives },
+        { "recorded_lives", life_stats.total_lives },
         { "first_life_score", life_stats.first_life_score },
         { "five_lives_score", life_stats.five_lives_score },
         { "last_life_score", life_stats.last_life_score },
@@ -1957,6 +1955,7 @@ local function export_json()
     local ms_pairs = {
       { "score", ms.score },
       { "frame", ms.frame },
+      { "time_from_start", start_frame and format_duration(ms.frame - start_frame) or nil },
     }
     if ms.stage then
       table.insert(ms_pairs, { "stage", ms.stage })
@@ -1965,6 +1964,7 @@ local function export_json()
     end
     table.insert(ms_pairs, { "screen_num", ms.screen_num })
     table.insert(ms_pairs, { "bonus_timer", ms.bonus_timer })
+    table.insert(ms_pairs, { "during_gameplay", ms.during_gameplay })
     table.insert(milestones_array, json_ordered(ms_pairs))
   end
 
@@ -2100,8 +2100,7 @@ local function export_text()
     if final_board ~= "" then
       file:write(string.format("Final Board: %s\n", final_board))
     end
-    file:write(string.format("Total Boards Reached: %d\n", dk3_actual_board_num + 1))
-    file:write(string.format("Death Count: %d\n", death_count))
+    file:write(string.format("Recorded Deaths: %d\n", death_count))
     file:write(string.format("Total Death Points: %s\n", format_number(total_death_points)))
 
     -- RBS milestones (score data)
@@ -2150,7 +2149,9 @@ local function export_text()
       file:write("\n")
 
       if game_variation and not game_variation:match("5 Lives") then
-        file:write(string.format("Total Lives: %d\n", life_stats.total_lives))
+        file:write(
+          string.format("Recorded Lives (starting + earned): %d\n", life_stats.total_lives)
+        )
       end
 
       file:write(
@@ -2279,23 +2280,33 @@ local function export_text()
     if #score_milestones > 0 then
       file:write("\nSCORE MILESTONES\n")
       for _, ms in ipairs(score_milestones) do
+        local time_str = ""
+        if start_frame then
+          time_str = string.format(" - %s", format_duration(ms.frame - start_frame))
+        end
         local board_str = ms.board and string.format(" | Board %d", ms.board) or ""
         local timer_str = ms.bonus_timer
             and string.format(" | Timer: %s", format_number(ms.bonus_timer))
           or ""
+        local phase_str = ""
+        if ms.during_gameplay == false then
+          phase_str = " [stage end]"
+        end
         file:write(
           string.format(
-            "%s (Frame %s)%s%s\n",
+            "%s (Frame %s%s)%s%s%s\n",
             format_number(ms.score),
             format_number(ms.frame),
+            time_str,
             board_str,
-            timer_str
+            timer_str,
+            phase_str
           )
         )
       end
     end
 
-    file:write("\n===================================\n\n")
+    file:write("\n===================================\n\nSTAGE DATA\n")
 
     -- Board data
     for _, board in ipairs(stage_data) do
@@ -2364,7 +2375,7 @@ local function export_text()
       file:write(string.format("Final Stage: %s\n", final_stage))
     end
     file:write(string.format("Total Screens: %d\n", current_screen_num))
-    file:write(string.format("Death Count: %d\n", death_count))
+    file:write(string.format("Recorded Deaths: %d\n", death_count))
     file:write(string.format("Total Death Points: %s\n", format_number(total_death_points)))
 
     -- Pace
@@ -2531,23 +2542,33 @@ local function export_text()
     if #score_milestones > 0 then
       file:write("\nSCORE MILESTONES\n")
       for _, ms in ipairs(score_milestones) do
+        local time_str = ""
+        if start_frame then
+          time_str = string.format(" - %s", format_duration(ms.frame - start_frame))
+        end
         local stage_str = ms.stage and string.format(" | %s", ms.stage) or ""
         local timer_str = ms.bonus_timer
             and string.format(" | Timer: %s", format_number(ms.bonus_timer))
           or ""
+        local phase_str = ""
+        if ms.during_gameplay == false then
+          phase_str = " [stage end]"
+        end
         file:write(
           string.format(
-            "%s (Frame %s)%s%s\n",
+            "%s (Frame %s%s)%s%s%s\n",
             format_number(ms.score),
             format_number(ms.frame),
+            time_str,
             stage_str,
-            timer_str
+            timer_str,
+            phase_str
           )
         )
       end
     end
 
-    file:write("\n===================================\n\n")
+    file:write("\n===================================\n\nSTAGE DATA\n")
 
     -- Per-stage data (unchanged from current format)
     local current_output_level = nil
@@ -2628,9 +2649,9 @@ local function print_platformer_summary(header_text, current_score)
   print(string.format("\n=== %s ===", header_text))
   -- Display playing time if we have valid start/end frames
   if start_frame and (game_over_vram_frame or end_frame) then
-    local end_f = game_over_vram_frame or end_frame
-    local duration_frames = end_f - start_frame
-    print(string.format("Unofficial Playing Time: %s", format_duration(duration_frames)))
+    local final_frame = game_over_vram_frame or end_frame
+    local duration_frames = final_frame - start_frame
+    print(string.format("Playing Time: %s", format_duration(duration_frames)))
   end
   print(string.format("Final Score: %s", format_number(current_score)))
   if final_stage ~= "" then
@@ -2729,8 +2750,64 @@ local function print_platformer_summary(header_text, current_score)
     )
   end
 
-  print(string.format("Death Count: %d", death_count))
+  print(string.format("Recorded Deaths: %d", death_count))
   print(string.format("Total Death Points: %s", format_number(total_death_points)))
+
+  -- Timing summary
+  print("")
+
+  if speedrun_start_frame and speedrun_end_frame then
+    local dur = speedrun_end_frame - speedrun_start_frame
+    print(
+      string.format(
+        "Speedrun Start: Frame %s - %s (%s frames) | %s",
+        format_number(speedrun_start_frame),
+        format_number(speedrun_end_frame),
+        format_number(dur),
+        format_duration(dur)
+      )
+    )
+  end
+
+  if start_frame and start_phase_end_frame then
+    local dur = start_phase_end_frame - start_frame
+    print(
+      string.format(
+        "Standard Start: Frame %s - %s (%s frames) | %s",
+        format_number(start_frame),
+        format_number(start_phase_end_frame),
+        format_number(dur),
+        format_duration(dur)
+      )
+    )
+  end
+
+  if speedrun_start_frame and killscreen_frame then
+    local dur = killscreen_frame - speedrun_start_frame
+    print(
+      string.format(
+        "Speedrun Killscreen: Frame %s - %s (%s frames) | %s",
+        format_number(speedrun_start_frame),
+        format_number(killscreen_frame),
+        format_number(dur),
+        format_duration(dur)
+      )
+    )
+  end
+
+  if start_frame and (game_over_vram_frame or end_frame) then
+    local final_frame = game_over_vram_frame or end_frame
+    local dur = final_frame - start_frame
+    print(
+      string.format(
+        "Full Game: Frame %s - %s (%s frames) | %s",
+        format_number(start_frame),
+        format_number(final_frame),
+        format_number(dur),
+        format_duration(dur)
+      )
+    )
+  end
 end
 
 -- Helper to print Game Over / Session Ended summary for DK3
@@ -2754,7 +2831,6 @@ local function print_dk3_summary(header_text, current_score)
   if final_board ~= "" then
     print(string.format("Final Board: %s", final_board))
   end
-  print(string.format("Total Boards Reached: %d", dk3_actual_board_num + 1))
 
   -- Display RBS milestones
   for _, rbs in ipairs(dk3_rbs_milestones) do
@@ -2801,9 +2877,9 @@ local function print_dk3_summary(header_text, current_score)
   if life_stats then
     print("") -- Blank line before life stats
 
-    -- Only show Total Lives for Marathon variations (redundant for 5 Lives)
+    -- Only show Recorded Lives for Marathon variations (redundant for 5 Lives)
     if game_variation and not game_variation:match("5 Lives") then
-      print(string.format("Total Lives: %d", life_stats.total_lives))
+      print(string.format("Recorded Lives (starting + earned): %d", life_stats.total_lives))
     end
 
     print(string.format("First Life Score: %s", format_number(life_stats.first_life_score)))
@@ -2863,8 +2939,58 @@ local function print_dk3_summary(header_text, current_score)
     print(string.format("Average Life (boards): %d", math.floor(life_stats.avg_boards)))
   end
 
-  print(string.format("Death Count: %d", death_count))
+  print(string.format("Recorded Deaths: %d", death_count))
   print(string.format("Total Death Points: %s", format_number(total_death_points)))
+
+  -- Timing summary
+  print("")
+
+  for _, md in ipairs(dk3_max_diff_milestones) do
+    local time_str = ""
+    if start_frame then
+      time_str = string.format(" | %s", format_duration(md.frame - start_frame))
+    end
+    print(
+      string.format("Max Difficulty %d: Frame %s%s", md.count, format_number(md.frame), time_str)
+    )
+  end
+
+  for _, rbs in ipairs(dk3_rbs_milestones) do
+    local time_str = ""
+    if start_frame then
+      time_str = string.format(" | %s", format_duration(rbs.frame - start_frame))
+    end
+    print(string.format("RBS %d: Frame %s%s", rbs.rbs_num, format_number(rbs.frame), time_str))
+  end
+
+  for _, loop in ipairs(dk3_loop_milestones) do
+    local time_str = ""
+    if start_frame then
+      time_str = string.format(" | %s", format_duration(loop.frame - start_frame))
+    end
+    print(
+      string.format(
+        "Loop %d Complete: Frame %s%s",
+        loop.loop_num,
+        format_number(loop.frame),
+        time_str
+      )
+    )
+  end
+
+  if start_frame and (game_over_vram_frame or end_frame) then
+    local final_frame = game_over_vram_frame or end_frame
+    local dur = final_frame - start_frame
+    print(
+      string.format(
+        "Full Game: Frame %s - %s (%s frames) | %s",
+        format_number(start_frame),
+        format_number(final_frame),
+        format_number(dur),
+        format_duration(dur)
+      )
+    )
+  end
 end
 
 -- ============================================================================
@@ -2936,6 +3062,7 @@ local function on_frame_platformer()
       start_button_pressed = true
       if coin_inserted and not start_frame then
         start_frame = frame_count - 1
+        print(string.format("  [Timing] Start button: Frame %s", format_number(start_frame)))
       end
     end
 
@@ -2959,25 +3086,21 @@ local function on_frame_platformer()
         stage = get_stage_name(prev_level, level_position[prev_level] or 0),
         screen_num = current_screen_num,
         bonus_timer = read_bonus_timer(),
+        during_gameplay = (game_mode == config.modes.gameplay),
       })
+      local ms_time_str = ""
+      if start_frame then
+        ms_time_str = string.format(" - %s", format_duration(frame_count - start_frame))
+      end
       print(
         string.format(
-          "  *** %s Milestone (Frame %d) ***",
+          "  *** %s Milestone (Frame %s%s) ***",
           format_number(next_score_milestone),
-          frame_count
+          format_number(frame_count),
+          ms_time_str
         )
       )
       next_score_milestone = next_score_milestone + 100000
-    end
-  end
-
-  -- START PHASE END DETECTION (VRAM-based, platformer only)
-  -- Captures the frame when the on-screen level indicator changes to start_level + 1
-  -- Uses VRAM tile (not internal level byte) for visual timing consistency
-  if not start_phase_end_frame and gameplay_started then
-    local vram_tile = read_byte(config.addresses.level_display_vram)
-    if vram_tile == config.start_level + 1 then
-      start_phase_end_frame = frame_count
     end
   end
 
@@ -2991,10 +3114,13 @@ local function on_frame_platformer()
       spawn_y = py
     elseif px ~= spawn_x or py ~= spawn_y then
       speedrun_start_frame = frame_count + 1
+      print(
+        string.format("  [Timing] Speedrun start: Frame %s", format_number(speedrun_start_frame))
+      )
     end
   end
 
-  -- SPEEDRUN END: Rivet/key clear on start level (all clear = count reaches 0)
+  -- SPEEDRUN "START" END: Rivet/key clear on start level (all clear = count reaches 0)
   -- Phase 1: Wait for gameplay (0x0C) on the clear screen to start checking
   -- Phase 2: Once gameplay seen, check for rivet=0 (mode may have already left gameplay)
   if
@@ -3010,7 +3136,35 @@ local function on_frame_platformer()
       local rivet_count = read_byte(config.addresses.rivet_key_count)
       if rivet_count == 0 then
         speedrun_end_frame = frame_count
+        local sr_dur = speedrun_end_frame - speedrun_start_frame
+        print(
+          string.format(
+            "  [Timing] Start Speedrun End: Frame %s (%s frames - %s)",
+            format_number(speedrun_end_frame),
+            format_number(sr_dur),
+            format_duration(sr_dur)
+          )
+        )
       end
+    end
+  end
+
+  -- STANDARD "START" END DETECTION (VRAM-based, platformer only)
+  -- Captures the frame when the on-screen level indicator changes to start_level + 1
+  -- Uses VRAM tile (not internal level byte) for visual timing consistency
+  if not start_phase_end_frame and gameplay_started then
+    local vram_tile = read_byte(config.addresses.level_display_vram)
+    if vram_tile == config.start_level + 1 then
+      start_phase_end_frame = frame_count
+      local std_dur = start_phase_end_frame - start_frame
+      print(
+        string.format(
+          "  [Timing] Standard Start End: Frame %s (%s frames - %s)",
+          format_number(start_phase_end_frame),
+          format_number(std_dur),
+          format_duration(std_dur)
+        )
+      )
     end
   end
 
@@ -3028,6 +3182,15 @@ local function on_frame_platformer()
     local ks_jump = read_byte(config.addresses.jump_status)
     if ks_flag == 0x03 and ks_secondary == 0x00 and ks_player == 0x01 and ks_jump ~= 0x01 then
       killscreen_frame = frame_count + 3
+      local ks_dur = killscreen_frame - speedrun_start_frame
+      print(
+        string.format(
+          "  [Timing] Killscreen Speedrun End: Frame %s (%s frames - %s)",
+          format_number(killscreen_frame),
+          format_number(ks_dur),
+          format_duration(ks_dur)
+        )
+      )
     end
   end
 
@@ -3125,6 +3288,14 @@ local function on_frame_platformer()
     death_pending_bonus = read_bonus_timer()
   end
 
+  -- KNOWN EDGE CASE: Simultaneous death + stage completion (platformer)
+  -- If the player dies on the exact frame a stage completes, both stage_completed_mode
+  -- and death_pending will be set. The completion records first (transition detection),
+  -- then death settles when leaving dead mode. This can cause death points to include
+  -- the stage bonus, and the death may be attributed to the next stage. This is the
+  -- "extra man" bug: lives increment then immediately decrement, death stage is not
+  -- replayed. Extremely rare; needs testing.
+
   -- GAME OVER
   if
     game_mode == config.modes.game_over
@@ -3145,6 +3316,15 @@ local function on_frame_platformer()
       local vram_tile = read_byte(config.addresses.game_over_vram)
       if vram_tile == 0x17 then
         game_over_vram_frame = frame_count
+        local go_dur = game_over_vram_frame - start_frame
+        print(
+          string.format(
+            "  [Timing] Standard Game End: Frame %s (%s frames - %s)",
+            format_number(game_over_vram_frame),
+            format_number(go_dur),
+            format_duration(go_dur)
+          )
+        )
       end
     end
 
@@ -3276,6 +3456,7 @@ local function on_frame_dkong3()
       -- Subtract 1 because frame_count was incremented before we detected the press
       if coin_inserted and not start_frame then
         start_frame = frame_count - 1
+        print(string.format("  [Timing] Start button: Frame %s", format_number(start_frame)))
       end
     end
 
@@ -3299,12 +3480,18 @@ local function on_frame_dkong3()
         board = dk3_actual_board_num + 1,
         screen_num = current_screen_num,
         bonus_timer = read_bonus_timer(),
+        during_gameplay = (game_mode == config.modes.gameplay),
       })
+      local ms_time_str = ""
+      if start_frame then
+        ms_time_str = string.format(" - %s", format_duration(frame_count - start_frame))
+      end
       print(
         string.format(
-          "  *** %s Milestone (Frame %d) ***",
+          "  *** %s Milestone (Frame %s%s) ***",
           format_number(next_score_milestone),
-          frame_count
+          format_number(frame_count),
+          ms_time_str
         )
       )
       next_score_milestone = next_score_milestone + 100000
@@ -3382,6 +3569,14 @@ local function on_frame_dkong3()
     dk3_death_pending_bonus = read_bonus_timer()
   end
 
+  -- KNOWN EDGE CASE: Simultaneous death + stage completion (DK3)
+  -- If the player dies on the exact frame a stage completes, both dk3_stage_completed
+  -- and dk3_death_pending will be set. The completion records first (transition_1),
+  -- then death settles when dead_status returns to alive. This can cause death points
+  -- to include the stage bonus, and dk3_actual_board_num may have already incremented.
+  -- DK3 does NOT replay the death stage - the next board starts normally with lives
+  -- decremented. Extremely rare; needs testing.
+
   -- GAME OVER
   if
     (game_mode == config.modes.game_over_1 or game_mode == config.modes.game_over_2)
@@ -3403,6 +3598,15 @@ local function on_frame_dkong3()
       local vram_tile = read_byte(config.addresses.game_over_vram)
       if vram_tile == 0x17 then
         game_over_vram_frame = frame_count
+        local go_dur = game_over_vram_frame - start_frame
+        print(
+          string.format(
+            "  [Timing] Standard Game End: Frame %s (%s frames - %s)",
+            format_number(game_over_vram_frame),
+            format_number(go_dur),
+            format_duration(go_dur)
+          )
+        )
       end
     end
 
