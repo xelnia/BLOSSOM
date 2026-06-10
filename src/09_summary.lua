@@ -20,9 +20,10 @@ local function print_platformer_summary(header_text, current_score)
 
   print(string.format("\n=== %s ===", header_text))
   -- Display playing time if we have valid start/end frames
-  if start_frame and end_frame then
-    local duration_frames = end_frame - start_frame
-    print(string.format("Estimated Playing Time: %s", format_duration(duration_frames)))
+  if start_frame and (game_over_vram_frame or end_frame) then
+    local end_f = game_over_vram_frame or end_frame
+    local duration_frames = end_f - start_frame
+    print(string.format("Unofficial Playing Time: %s", format_duration(duration_frames)))
   end
   print(string.format("Final Score: %s", format_number(current_score)))
   if final_stage ~= "" then
@@ -62,7 +63,12 @@ local function print_platformer_summary(header_text, current_score)
   if start_score_total > 0 then
     if start_phase_deaths > 0 then
       print(
-        string.format("Start Score (excluding deaths): %s", format_number(start_score_for_pace))
+        string.format(
+          "Start Score: %s (%s + %s)",
+          format_number(start_score_total),
+          format_number(start_score_for_pace),
+          format_number(start_phase_death_points)
+        )
       )
     else
       print(string.format("Start Score: %s", format_number(start_score_total)))
@@ -116,6 +122,7 @@ local function print_platformer_summary(header_text, current_score)
     )
   end
 
+  print(string.format("Death Count: %d", death_count))
   print(string.format("Total Death Points: %s", format_number(total_death_points)))
 end
 
@@ -131,17 +138,16 @@ local function print_dk3_summary(header_text, current_score)
   end
 
   print(string.format("\n=== %s ===", header_text))
+  if start_frame and (game_over_vram_frame or end_frame) then
+    local final_frame = game_over_vram_frame or end_frame
+    local duration_frames = final_frame - start_frame
+    print(string.format("Playing Time: %s", format_duration(duration_frames)))
+  end
   print(string.format("Final Score: %s", format_number(current_score)))
   if final_board ~= "" then
     print(string.format("Final Board: %s", final_board))
   end
   print(string.format("Total Boards Reached: %d", dk3_actual_board_num + 1))
-
-  -- Display playing time if we have valid start/end frames
-  if start_frame and end_frame then
-    local duration_frames = end_frame - start_frame
-    print(string.format("Estimated Playing Time: %s", format_duration(duration_frames)))
-  end
 
   -- Display RBS milestones
   for _, rbs in ipairs(dk3_rbs_milestones) do
@@ -250,5 +256,6 @@ local function print_dk3_summary(header_text, current_score)
     print(string.format("Average Life (boards): %d", math.floor(life_stats.avg_boards)))
   end
 
+  print(string.format("Death Count: %d", death_count))
   print(string.format("Total Death Points: %s", format_number(total_death_points)))
 end

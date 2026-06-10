@@ -19,6 +19,7 @@ local stage_completed_mode = nil
 local completed_screen_type = 0
 local completed_level = 0
 local last_stage_was_completed = false
+local first_gameplay_seen = false
 local death_count = 0
 local total_death_points = 0 -- Accumulates points earned on death attempts
 local start_score_for_pace = 0 -- Sum of stage scores during start phase (excludes deaths)
@@ -29,6 +30,8 @@ local score_offset = 0 -- Tracks million-point rollovers
 local game_over_processed = false -- Prevents double-printing at game over
 
 -- Deferred death recording (score may settle after mode changes to DEAD)
+-- Platformer game_mode transitions directly to DEAD, so settlement fires
+-- on the same frame as board start (execution order protects stage_start_score).
 local death_pending = false
 local death_pending_screen_type = 0
 local death_pending_level = 0
@@ -65,10 +68,9 @@ local dk3_current_loop = 1
 local dk3_loop_start_score = 0
 local dk3_max_diff_reached = false
 local dk3_max_diff_count = 0
-local dk3_max_diff_frame = nil -- Frame when max difficulty first reached
+local dk3_max_diff_milestones = {} -- Array of {count, total_score, start_phase_score, frame}
 local dk3_rbs_milestones = {}
 local dk3_loop_milestones = {}
-local dk3_million_frame = nil -- Frame when score first reaches/passes 1,000,000
 local dk3_stage_completed = false
 local dk3_completed_screen_type = 0
 local dk3_completed_level = 0
@@ -82,11 +84,15 @@ local dk3_current_life_start_score = 0
 local dk3_current_life_start_board = 1 -- Game starts on board 1
 
 -- Deferred death recording for DK3
+-- DK3 uses a separate dead_status address (0x6101) instead of a game_mode value,
+-- so game_mode can re-enter gameplay before dead_status clears.
+-- All state must be captured at detection time to avoid clobbering by the board start block.
 local dk3_death_pending = false
 local dk3_death_pending_screen_type = 0
 local dk3_death_pending_level = 0
 local dk3_death_pending_lives_at_death = 0
 local dk3_death_pending_bonus = 0
+local dk3_death_pending_start_score = 0
 
 -- GAMEPLAY DURATION TRACKING
 local start_button_pressed = false -- Edge detected: start button was pressed
@@ -107,7 +113,7 @@ local game_over_vram_frame = nil -- VRAM "G" tile appearance
 
 -- Speedrun timing (DK/DKJR/CK only)
 local speedrun_start_frame = nil -- First position change + 1
-local speedrun_end_frame = nil -- Rivet/key clear - 1 (start) or killscreen + 2 (full)
+local speedrun_end_frame = nil -- Frame when rivet/key count reaches 0 on start level clear screen
 local spawn_x = nil -- Spawn position for movement detection
 local spawn_y = nil
 local clear_screen_gameplay_seen = false -- True once gameplay mode seen on start level clear screen

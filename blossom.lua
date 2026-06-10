@@ -6,6 +6,8 @@
 -- Supported MAME versions: 0.175+
 -- Exports scoring data and summary in CSV, JSON, and TXT format
 
+local BLOSSOM_VERSION = "2.0.0"
+
 -- ============================================================================
 -- MAME VERSION COMPATIBILITY LAYER
 -- ============================================================================
@@ -164,7 +166,7 @@ local GAME_CONFIGS = {
     short_name = "Donkey Kong",
     full_name = "Donkey Kong (US Set 1)",
     romset = "dkong",
-    frame_rate = 60.606060606060606,
+    frame_rate = 2000 / 33,
 
     -- MEMORY ADDRESSES
     addresses = {
@@ -238,7 +240,7 @@ local GAME_CONFIGS = {
     short_name = "Donkey Kong Junior",
     full_name = "Donkey Kong Junior",
     romset = "dkongjr",
-    frame_rate = 60.606060606060606,
+    frame_rate = 2000 / 33,
 
     -- MEMORY ADDRESSES
     addresses = {
@@ -386,7 +388,7 @@ local GAME_CONFIGS = {
     short_name = "Donkey Kong 3",
     full_name = "Donkey Kong 3",
     romset = "dkong3",
-    frame_rate = 60.606060606060606,
+    frame_rate = 2000 / 33,
 
     -- MEMORY ADDRESSES
     addresses = {
@@ -476,6 +478,7 @@ local stage_completed_mode = nil
 local completed_screen_type = 0
 local completed_level = 0
 local last_stage_was_completed = false
+local first_gameplay_seen = false
 local death_count = 0
 local total_death_points = 0 -- Accumulates points earned on death attempts
 local start_score_for_pace = 0 -- Sum of stage scores during start phase (excludes deaths)
@@ -486,6 +489,8 @@ local score_offset = 0 -- Tracks million-point rollovers
 local game_over_processed = false -- Prevents double-printing at game over
 
 -- Deferred death recording (score may settle after mode changes to DEAD)
+-- Platformer game_mode transitions directly to DEAD, so settlement fires
+-- on the same frame as board start (execution order protects stage_start_score).
 local death_pending = false
 local death_pending_screen_type = 0
 local death_pending_level = 0
@@ -522,10 +527,9 @@ local dk3_current_loop = 1
 local dk3_loop_start_score = 0
 local dk3_max_diff_reached = false
 local dk3_max_diff_count = 0
-local dk3_max_diff_frame = nil -- Frame when max difficulty first reached
+local dk3_max_diff_milestones = {} -- Array of {count, total_score, start_phase_score, frame}
 local dk3_rbs_milestones = {}
 local dk3_loop_milestones = {}
-local dk3_million_frame = nil -- Frame when score first reaches/passes 1,000,000
 local dk3_stage_completed = false
 local dk3_completed_screen_type = 0
 local dk3_completed_level = 0
@@ -539,11 +543,15 @@ local dk3_current_life_start_score = 0
 local dk3_current_life_start_board = 1 -- Game starts on board 1
 
 -- Deferred death recording for DK3
+-- DK3 uses a separate dead_status address (0x6101) instead of a game_mode value,
+-- so game_mode can re-enter gameplay before dead_status clears.
+-- All state must be captured at detection time to avoid clobbering by the board start block.
 local dk3_death_pending = false
 local dk3_death_pending_screen_type = 0
 local dk3_death_pending_level = 0
 local dk3_death_pending_lives_at_death = 0
 local dk3_death_pending_bonus = 0
+local dk3_death_pending_start_score = 0
 
 -- GAMEPLAY DURATION TRACKING
 local start_button_pressed = false -- Edge detected: start button was pressed
@@ -564,7 +572,7 @@ local game_over_vram_frame = nil -- VRAM "G" tile appearance
 
 -- Speedrun timing (DK/DKJR/CK only)
 local speedrun_start_frame = nil -- First position change + 1
-local speedrun_end_frame = nil -- Rivet/key clear - 1 (start) or killscreen + 2 (full)
+local speedrun_end_frame = nil -- Frame when rivet/key count reaches 0 on start level clear screen
 local spawn_x = nil -- Spawn position for movement detection
 local spawn_y = nil
 local clear_screen_gameplay_seen = false -- True once gameplay mode seen on start level clear screen
@@ -699,10 +707,6 @@ local function read_score_with_rollover_check()
   -- Compare raw scores to detect the transition, not adjusted scores
   if prev_raw_score > 900000 and raw_score < 100000 then
     score_offset = score_offset + 1000000
-    -- Capture frame for first million-point milestone (DK3 T7)
-    if not dk3_million_frame then
-      dk3_million_frame = frame_count
-    end
   end
 
   prev_raw_score = raw_score
@@ -743,19 +747,21 @@ local function read_bonus_timer()
   end
 end
 
--- Format frame count as H:MM:SS playing time
+-- Format frame count as H:MM:SS.mmm playing time (rounded to nearest millisecond)
 local function format_duration(frames)
   if not frames or frames < 0 then
-    return "0:00:00"
+    return "0:00:00.000"
   end
 
   local config = get_config()
-  local seconds = frames / config.frame_rate
-  local hours = math.floor(seconds / 3600)
-  local minutes = math.floor((seconds % 3600) / 60)
-  local secs = math.floor(seconds % 60)
+  local total_ms = math.floor((frames / config.frame_rate) * 1000 + 0.5)
+  local ms = total_ms % 1000
+  local total_secs = math.floor(total_ms / 1000)
+  local hours = math.floor(total_secs / 3600)
+  local minutes = math.floor((total_secs % 3600) / 60)
+  local secs = total_secs % 60
 
-  return string.format("%d:%02d:%02d", hours, minutes, secs)
+  return string.format("%d:%02d:%02d.%03d", hours, minutes, secs, ms)
 end
 
 -- FORMATTING HELPERS
@@ -1025,14 +1031,21 @@ local function record_board_dk3(
     if memory_board_check == config.max_diff_board - 1 then
       dk3_max_diff_count = dk3_max_diff_count + 1
       dk3_max_diff_reached = true
-      if not dk3_max_diff_frame then
-        dk3_max_diff_frame = frame_count
-      end
+      local start_phase_score = total_score - dk3_loop_start_score
+
+      -- Store milestone data (parallel to RBS/loop milestones)
+      table.insert(dk3_max_diff_milestones, {
+        count = dk3_max_diff_count,
+        total_score = total_score,
+        start_phase_score = start_phase_score,
+        frame = frame_count,
+      })
+
       print(
         string.format(
           "\n>>> MAX DIFFICULTY REACHED <<< | Start Phase %d Score: %s | Total Score: %s\n",
           dk3_max_diff_count,
-          format_number(total_score),
+          format_number(start_phase_score),
           format_number(total_score)
         )
       )
@@ -1127,6 +1140,7 @@ local function record_stage(
     pace = nil, -- Will store the calculated pace
     pace_22_4 = nil, -- Will store the 22-4 extended pace (ckongpt2 only)
     bonus_timer = bonus_timer,
+    lives = lives_remaining,
   }
 
   table.insert(stage_data, stage_info)
@@ -1447,6 +1461,73 @@ end
 -- EXPORT FUNCTIONS
 -- ============================================================================
 
+-- ============================================================================
+-- JSON SERIALIZATION HELPERS
+-- ============================================================================
+
+-- Marker for ordered JSON objects (preserves key order)
+-- Usage: json_ordered({ {"key1", val1}, {"key2", val2}, ... })
+local function json_ordered(pairs_list)
+  return { __json_ordered = true, pairs = pairs_list }
+end
+
+-- Serialize any Lua value to a JSON string with pretty-print indentation
+-- Handles: nil, boolean, number, string, ordered objects, arrays
+local function to_json(val, indent_level)
+  indent_level = indent_level or 0
+  local indent = string.rep("  ", indent_level)
+  local child_indent = string.rep("  ", indent_level + 1)
+
+  if val == nil then
+    return "null"
+  elseif type(val) == "boolean" then
+    return val and "true" or "false"
+  elseif type(val) == "number" then
+    if val == math.floor(val) and math.abs(val) < 1e15 then
+      return string.format("%d", val)
+    else
+      return string.format("%.3f", val)
+    end
+  elseif type(val) == "string" then
+    local escaped = val:gsub("\\", "\\\\"):gsub('"', '\\"'):gsub("\n", "\\n")
+    return '"' .. escaped .. '"'
+  elseif type(val) == "table" then
+    if val.__json_ordered then
+      -- Ordered object: array of {key, value} pairs
+      if #val.pairs == 0 then
+        return "{}"
+      end
+      local lines = {}
+      for i, pair in ipairs(val.pairs) do
+        local k = pair[1]
+        local v = pair[2]
+        local comma = i < #val.pairs and "," or ""
+        local serialized = to_json(v, indent_level + 1)
+        table.insert(lines, string.format('%s"%s": %s%s', child_indent, k, serialized, comma))
+      end
+      return "{\n" .. table.concat(lines, "\n") .. "\n" .. indent .. "}"
+    else
+      -- Regular array (sequential integer keys)
+      if #val == 0 then
+        return "[]"
+      end
+      local lines = {}
+      for i, item in ipairs(val) do
+        local comma = i < #val and "," or ""
+        local serialized = to_json(item, indent_level + 1)
+        table.insert(lines, child_indent .. serialized .. comma)
+      end
+      return "[\n" .. table.concat(lines, "\n") .. "\n" .. indent .. "]"
+    end
+  end
+
+  return "null"
+end
+
+-- ============================================================================
+-- CSV EXPORT
+-- ============================================================================
+
 -- Export to CSV
 local function export_csv()
   if not EXPORT_CSV then
@@ -1462,86 +1543,66 @@ local function export_csv()
   -- Write header based on game type
   if GAME_TYPE == "dkong3" then
     file:write(
-      "Attempt_Num,Board_Number,Board_Label,Screen_Type,Score_Earned,Total_Score,Death,Death_Num,Lives,Frame,Variation,Romset,INP_File,Start_Button_Frame,End_Game_Frame,Playing_Time_Frames\n"
+      "attempt_num,board_number,board_label,screen_type,board_score,running_total,death,death_num,lives,frame,bonus_timer\n"
     )
   else
     file:write(
-      "Screen_Num,Stage,Screen_Type,Level,Score_Earned,Total_Score,Death,Death_Num,Frame,Romset,INP_File,Start_Button_Frame,End_Game_Frame,Playing_Time_Frames\n"
+      "screen_num,stage,screen_type,level,board_score,running_total,death,death_num,lives,frame,bonus_timer\n"
     )
   end
 
-  -- Write data
-  local first_row = true
+  -- Write data (exclude level totals)
   for _, stage in ipairs(stage_data) do
-    local screen_num_str = stage.screen_num == "" and "" or tostring(stage.screen_num)
-    local death_num_str = stage.death_num and tostring(stage.death_num) or ""
-    local inp_file_str = first_row and get_inp_filename() or ""
-    local start_frame_str = ""
-    local end_frame_str = ""
-    local duration_str = ""
-    if first_row then
-      start_frame_str = start_frame and tostring(start_frame) or ""
-      end_frame_str = end_frame and tostring(end_frame) or ""
-      if start_frame and end_frame then
-        duration_str = tostring(end_frame - start_frame)
+    if not stage.is_level_total then
+      local screen_num_str = stage.screen_num == "" and "" or tostring(stage.screen_num)
+      local death_num_str = stage.death_num and tostring(stage.death_num) or ""
+      local bonus_timer_str = stage.bonus_timer and tostring(stage.bonus_timer) or ""
+
+      if GAME_TYPE == "dkong3" then
+        file:write(
+          string.format(
+            "%s,%d,%s,%s,%d,%d,%s,%s,%d,%d,%s\n",
+            screen_num_str,
+            stage.level,
+            stage.board,
+            stage.screen_type,
+            stage.score_earned,
+            stage.total_score,
+            stage.death and "true" or "false",
+            death_num_str,
+            stage.lives or 0,
+            stage.frame,
+            bonus_timer_str
+          )
+        )
+      else
+        file:write(
+          string.format(
+            "%s,%s,%s,%d,%d,%d,%s,%s,%d,%d,%s\n",
+            screen_num_str,
+            stage.stage,
+            stage.screen_type,
+            stage.level,
+            stage.score_earned,
+            stage.total_score,
+            stage.death and "true" or "false",
+            death_num_str,
+            stage.lives or 0,
+            stage.frame,
+            bonus_timer_str
+          )
+        )
       end
     end
-
-    if GAME_TYPE == "dkong3" then
-      -- DK3 format with Lives and Variation
-      local config = get_config()
-      local variation_str = first_row and (game_variation or "") or ""
-      local romset_str = first_row and config.romset or ""
-      file:write(string.format(
-        "%s,%d,%s,%s,%d,%d,%s,%s,%d,%d,%s,%s,%s,%s,%s,%s\n",
-        screen_num_str, -- Attempt_Num
-        stage.level, -- Board_Number
-        stage.board, -- Board_Label
-        stage.screen_type, -- Screen_Type
-        stage.score_earned,
-        stage.total_score,
-        stage.death and "true" or "false",
-        death_num_str,
-        stage.lives or 0,
-        stage.frame,
-        variation_str,
-        romset_str,
-        inp_file_str,
-        start_frame_str,
-        end_frame_str,
-        duration_str
-      ))
-    else
-      -- Standard platformer format
-      local config = get_config()
-      local romset_str = first_row and config.romset or ""
-      file:write(
-        string.format(
-          "%s,%s,%s,%d,%d,%d,%s,%s,%d,%s,%s,%s,%s,%s\n",
-          screen_num_str,
-          stage.stage,
-          stage.screen_type,
-          stage.level,
-          stage.score_earned,
-          stage.total_score,
-          stage.death and "true" or "false",
-          death_num_str,
-          stage.frame,
-          romset_str,
-          inp_file_str,
-          start_frame_str,
-          end_frame_str,
-          duration_str
-        )
-      )
-    end
-
-    first_row = false
   end
 
   file:close()
   print(string.format("\n[OK] CSV exported to: %s", CSV_FILE))
 end
+
+-- ============================================================================
+-- JSON EXPORT
+-- ============================================================================
 
 -- Export to JSON
 local function export_json()
@@ -1557,140 +1618,446 @@ local function export_json()
 
   local config = get_config()
 
-  file:write("{\n")
-  file:write(string.format('  "game": "%s",\n', config.full_name))
-  file:write(string.format('  "romset": "%s",\n', config.romset))
-
-  -- Add DK3-specific variation field
+  -- Find the final stage/board (last non-level-total entry)
+  local final_level_str = nil
+  local final_stage_num = nil
   if GAME_TYPE == "dkong3" then
-    file:write(string.format('  "variation": "%s",\n', game_variation or ""))
-  end
-
-  file:write(string.format('  "final_score": %d,\n', prev_score))
-
-  -- Add final level/stage info
-  if GAME_TYPE == "dkong3" then
-    -- DK3: final_level (formatted label) and final_stage (board number)
-    local final_level_str = ""
-    local final_stage_num = nil
+    for i = #stage_data, 1, -1 do
+      local board_label = stage_data[i].board
+      if not board_label:match("%(") then
+        final_level_str = "Board " .. board_label
+      else
+        final_level_str = board_label
+      end
+      final_stage_num = stage_data[i].level
+      break
+    end
+  else
     for i = #stage_data, 1, -1 do
       if not stage_data[i].is_level_total then
-        local board_label = stage_data[i].board
-        -- Only prepend "Board " for simple numeric boards (avoid "Board 257 (Loop 2: Board 1)")
-        if not board_label:match("%(") then
-          final_level_str = "Board " .. board_label
-        else
-          final_level_str = board_label
+        final_level_str = stage_data[i].stage
+        final_stage_num = stage_data[i].screen_num
+        break
+      end
+    end
+  end
+
+  -- METADATA
+  local metadata = json_ordered({
+    { "game", config.full_name },
+    { "variation", GAME_TYPE == "dkong3" and game_variation or nil },
+    { "romset", config.romset },
+    { "inp_file", get_inp_filename() },
+    { "mame_version", detect_mame_version() },
+    { "blossom_version", BLOSSOM_VERSION },
+  })
+
+  -- SCORING SUMMARY
+  local scoring_pairs = {
+    { "final_score", prev_score },
+    { "final_level", final_level_str },
+    { "final_stage", final_stage_num },
+    { "death_count", death_count },
+    { "total_death_points", total_death_points },
+  }
+
+  if GAME_TYPE == "dkong3" then
+    -- DK3 scoring summary
+    table.insert(scoring_pairs, { "total_boards_reached", dk3_actual_board_num + 1 })
+
+    -- Screen type averages (max difficulty only)
+    if dk3_max_diff_count > 0 then
+      local avg_pairs = {}
+      for i = 0, 2 do
+        local idx = i + 1
+        if dk3_screen_count[idx] > 0 then
+          table.insert(
+            avg_pairs,
+            { config.screen_names[i]:lower(), dk3_screen_sum[idx] / dk3_screen_count[idx] }
+          )
         end
-        final_stage_num = stage_data[i].level -- Raw board number (actual_board_num)
-        break
+      end
+      if #avg_pairs > 0 then
+        table.insert(scoring_pairs, { "max_diff_screen_averages", json_ordered(avg_pairs) })
       end
     end
 
-    if final_level_str ~= "" then
-      file:write(string.format('  "final_level": "%s",\n', final_level_str))
-      file:write(string.format('  "final_stage": %d,\n', final_stage_num))
-    else
-      file:write('  "final_level": null,\n')
-      file:write('  "final_stage": null,\n')
+    -- RBS milestones (score data)
+    local rbs_score_array = {}
+    for _, rbs in ipairs(dk3_rbs_milestones) do
+      table.insert(
+        rbs_score_array,
+        json_ordered({
+          { "rbs_num", rbs.rbs_num },
+          { "total_score", rbs.total_score },
+          { "rbs_score", rbs.rbs_score },
+        })
+      )
+    end
+    table.insert(scoring_pairs, { "rbs_milestones", rbs_score_array })
+
+    -- Loop milestones (score data)
+    local loop_score_array = {}
+    for _, loop in ipairs(dk3_loop_milestones) do
+      table.insert(
+        loop_score_array,
+        json_ordered({
+          { "loop_num", loop.loop_num },
+          { "total_score", loop.total_score },
+          { "loop_score", loop.loop_score },
+        })
+      )
+    end
+    table.insert(scoring_pairs, { "loop_milestones", loop_score_array })
+
+    -- Life statistics
+    local life_stats = calculate_dk3_life_stats()
+    if life_stats then
+      local life_pairs = {
+        { "total_lives", life_stats.total_lives },
+        { "first_life_score", life_stats.first_life_score },
+        { "five_lives_score", life_stats.five_lives_score },
+        { "last_life_score", life_stats.last_life_score },
+        {
+          "longest_life_points",
+          json_ordered({
+            { "score", life_stats.longest_life_points.score },
+            { "life_nums", life_stats.longest_life_points.life_nums },
+          }),
+        },
+        {
+          "longest_life_boards",
+          json_ordered({
+            { "boards", life_stats.longest_life_boards.boards },
+            { "life_nums", life_stats.longest_life_boards.life_nums },
+          }),
+        },
+        {
+          "shortest_life_points",
+          json_ordered({
+            { "score", life_stats.shortest_life_points.score },
+            { "life_nums", life_stats.shortest_life_points.life_nums },
+          }),
+        },
+        {
+          "shortest_life_boards",
+          json_ordered({
+            { "boards", life_stats.shortest_life_boards.boards },
+            { "life_nums", life_stats.shortest_life_boards.life_nums },
+          }),
+        },
+        { "avg_points", math.floor(life_stats.avg_points) },
+        { "avg_boards", math.floor(life_stats.avg_boards) },
+      }
+      table.insert(scoring_pairs, { "life_stats", json_ordered(life_pairs) })
     end
   else
-    -- Platformer: final_level (stage name) and final_stage (screen_num)
-    local final_level_str = ""
-    local final_stage_num = nil
-    for i = #stage_data, 1, -1 do
-      if not stage_data[i].is_level_total then
-        final_level_str = stage_data[i].stage -- Formatted stage like "22-1"
-        final_stage_num = stage_data[i].screen_num -- Unique stage counter
-        break
+    -- Platformer scoring summary
+    table.insert(scoring_pairs, { "total_screens", current_screen_num })
+
+    -- Pace
+    local final_level = nil
+    if final_level_str then
+      local level_match = final_level_str:match("^(%d+)-")
+      if level_match then
+        final_level = tonumber(level_match)
       end
     end
 
-    if final_level_str ~= "" then
-      file:write(string.format('  "final_level": "%s",\n', final_level_str))
-      file:write(string.format('  "final_stage": %d,\n', final_stage_num))
+    if final_level and last_pace then
+      if config.supports_22_4_pace then
+        table.insert(scoring_pairs, { "pace_22_1", last_pace })
+        table.insert(scoring_pairs, { "pace_22_4", last_pace_22_4 })
+      else
+        table.insert(scoring_pairs, { "pace", last_pace })
+      end
+    end
+
+    -- Start score
+    if start_score_total > 0 then
+      table.insert(scoring_pairs, { "start_score_total", start_score_total })
+      table.insert(scoring_pairs, { "start_score_for_pace", start_score_for_pace })
+      table.insert(scoring_pairs, { "start_phase_deaths", start_phase_deaths })
+      table.insert(scoring_pairs, { "start_phase_death_points", start_phase_death_points })
+    end
+
+    -- Screen type averages
+    local display_order
+    if GAME_TYPE == "dkongjr" then
+      display_order = { 2, 1, 3, 4 }
     else
-      file:write('  "final_level": null,\n')
-      file:write('  "final_stage": null,\n')
+      display_order = { 1, 2, 3, 4 }
+    end
+
+    local screen_avg_pairs = {}
+    for _, i in ipairs(display_order) do
+      if #screen_scores[i] > 0 then
+        local best_score, best_labels, worst_score, worst_labels = find_best_worst(screen_scores[i])
+        local avg = screen_sum[i] / screen_count[i]
+        local type_name = get_screen_type_name(i):lower()
+        table.insert(screen_avg_pairs, {
+          type_name,
+          json_ordered({
+            { "average", avg },
+            { "best_score", best_score },
+            { "best_stages", best_labels },
+            { "worst_score", worst_score },
+            { "worst_stages", worst_labels },
+            { "count", screen_count[i] },
+          }),
+        })
+      end
+    end
+    if #screen_avg_pairs > 0 then
+      table.insert(scoring_pairs, { "screen_type_averages", json_ordered(screen_avg_pairs) })
+    end
+
+    -- Level averages
+    if #level_scores > 0 then
+      local best_score, best_labels, worst_score, worst_labels = find_best_worst(level_scores)
+      local avg = level_sum / level_count
+      table.insert(scoring_pairs, {
+        "level_averages",
+        json_ordered({
+          { "average", avg },
+          { "best_score", best_score },
+          { "best_levels", best_labels },
+          { "worst_score", worst_score },
+          { "worst_levels", worst_labels },
+          { "count", level_count },
+        }),
+      })
     end
   end
 
-  -- Timing information
-  if start_frame and end_frame then
-    local duration_frames = end_frame - start_frame
-    file:write(string.format('  "playing_time": "%s",\n', format_duration(duration_frames)))
-  else
-    file:write('  "playing_time": null,\n')
+  local scoring_summary = json_ordered(scoring_pairs)
+
+  -- TIMING SUMMARY
+  local timing_pairs = {}
+
+  -- Raw frame markers
+  table.insert(timing_pairs, { "start_button_frame", start_frame })
+
+  if GAME_TYPE ~= "dkong3" then
+    table.insert(timing_pairs, { "speedrun_start_frame", speedrun_start_frame })
+    table.insert(timing_pairs, { "start_phase_clear_frame", speedrun_end_frame })
+    table.insert(timing_pairs, { "start_phase_end_frame", start_phase_end_frame })
+    table.insert(timing_pairs, { "killscreen_frame", killscreen_frame })
   end
 
-  if start_frame then
-    file:write(string.format('  "start_button_frame": %d,\n', start_frame))
-  else
-    file:write('  "start_button_frame": null,\n')
-  end
+  table.insert(timing_pairs, { "end_game_frame", end_frame })
+  table.insert(timing_pairs, { "game_over_vram_frame", game_over_vram_frame })
 
-  if end_frame then
-    file:write(string.format('  "end_game_frame": %d,\n', end_frame))
-  else
-    file:write('  "end_game_frame": null,\n')
-  end
-
-  if start_frame and end_frame then
-    local duration_frames = end_frame - start_frame
-    file:write(string.format('  "playing_time_frames": %d,\n', duration_frames))
-  else
-    file:write('  "playing_time_frames": null,\n')
-  end
-
-  file:write(string.format('  "inp_file": "%s",\n', get_inp_filename()))
-
-  file:write('  "stages": [\n')
-  for i, stage in ipairs(stage_data) do
-    file:write("    {\n")
-
-    if stage.is_level_total then
-      file:write('      "screen_num": null,\n')
+  -- Computed durations (platformer only)
+  if GAME_TYPE ~= "dkong3" then
+    -- Speedrun start duration
+    if speedrun_start_frame and speedrun_end_frame then
+      local dur = speedrun_end_frame - speedrun_start_frame
+      table.insert(timing_pairs, { "speedrun_start_duration_frames", dur })
+      table.insert(timing_pairs, { "speedrun_start_time", format_duration(dur) })
     else
-      file:write(string.format('      "screen_num": %d,\n', stage.screen_num))
+      table.insert(timing_pairs, { "speedrun_start_duration_frames", nil })
+      table.insert(timing_pairs, { "speedrun_start_time", nil })
     end
 
-    -- Use "board" or "stage" depending on game type
-    if GAME_TYPE == "dkong3" then
-      file:write(string.format('      "board": "%s",\n', stage.board))
+    -- Standard start duration
+    if start_frame and start_phase_end_frame then
+      local dur = start_phase_end_frame - start_frame
+      table.insert(timing_pairs, { "standard_start_duration_frames", dur })
+      table.insert(timing_pairs, { "standard_start_time", format_duration(dur) })
     else
-      file:write(string.format('      "stage": "%s",\n', stage.stage))
+      table.insert(timing_pairs, { "standard_start_duration_frames", nil })
+      table.insert(timing_pairs, { "standard_start_time", nil })
     end
 
-    file:write(string.format('      "screen_type": "%s",\n', stage.screen_type))
-    file:write(string.format('      "level": %d,\n', stage.level))
-    file:write(string.format('      "score_earned": %d,\n', stage.score_earned))
-    file:write(string.format('      "total_score": %d,\n', stage.total_score))
-
-    -- Add lives for DK3
-    if GAME_TYPE == "dkong3" then
-      file:write(string.format('      "lives": %d,\n', stage.lives or 0))
-    end
-
-    file:write(string.format('      "death": %s,\n', stage.death and "true" or "false"))
-
-    if stage.death_num then
-      file:write(string.format('      "death_num": %d,\n', stage.death_num))
+    -- Speedrun killscreen duration
+    if speedrun_start_frame and killscreen_frame then
+      local dur = killscreen_frame - speedrun_start_frame
+      table.insert(timing_pairs, { "speedrun_killscreen_duration_frames", dur })
+      table.insert(timing_pairs, { "speedrun_killscreen_time", format_duration(dur) })
     else
-      file:write('      "death_num": null,\n')
+      table.insert(timing_pairs, { "speedrun_killscreen_duration_frames", nil })
+      table.insert(timing_pairs, { "speedrun_killscreen_time", nil })
     end
-
-    file:write(
-      string.format('      "is_level_total": %s,\n', stage.is_level_total and "true" or "false")
-    )
-    file:write(string.format('      "frame": %d\n', stage.frame))
-    file:write(i < #stage_data and "    },\n" or "    }\n")
   end
 
-  file:write("  ]\n")
-  file:write("}\n")
+  -- Playing time (standard total: start button to game over VRAM, fallback to end_frame)
+  if start_frame and game_over_vram_frame then
+    local dur = game_over_vram_frame - start_frame
+    table.insert(timing_pairs, { "playing_time_frames", dur })
+    table.insert(timing_pairs, { "playing_time", format_duration(dur) })
+  elseif start_frame and end_frame then
+    local dur = end_frame - start_frame
+    table.insert(timing_pairs, { "playing_time_frames", dur })
+    table.insert(timing_pairs, { "playing_time", format_duration(dur) })
+  else
+    table.insert(timing_pairs, { "playing_time_frames", nil })
+    table.insert(timing_pairs, { "playing_time", nil })
+  end
+
+  -- DK3 milestone timing
+  if GAME_TYPE == "dkong3" then
+    local max_diff_timing = {}
+    for _, md in ipairs(dk3_max_diff_milestones) do
+      local time_from_start = nil
+      if start_frame then
+        time_from_start = format_duration(md.frame - start_frame)
+      end
+      table.insert(
+        max_diff_timing,
+        json_ordered({
+          { "count", md.count },
+          { "frame", md.frame },
+          { "time_from_start", time_from_start },
+        })
+      )
+    end
+    table.insert(timing_pairs, { "max_diff_milestones", max_diff_timing })
+
+    local rbs_timing = {}
+    for _, rbs in ipairs(dk3_rbs_milestones) do
+      local time_from_start = nil
+      if start_frame then
+        time_from_start = format_duration(rbs.frame - start_frame)
+      end
+      table.insert(
+        rbs_timing,
+        json_ordered({
+          { "rbs_num", rbs.rbs_num },
+          { "frame", rbs.frame },
+          { "time_from_start", time_from_start },
+        })
+      )
+    end
+    table.insert(timing_pairs, { "rbs_milestone_timing", rbs_timing })
+
+    local loop_timing = {}
+    for _, loop in ipairs(dk3_loop_milestones) do
+      local time_from_start = nil
+      if start_frame then
+        time_from_start = format_duration(loop.frame - start_frame)
+      end
+      table.insert(
+        loop_timing,
+        json_ordered({
+          { "loop_num", loop.loop_num },
+          { "frame", loop.frame },
+          { "time_from_start", time_from_start },
+        })
+      )
+    end
+    table.insert(timing_pairs, { "loop_milestone_timing", loop_timing })
+  end
+
+  local timing_summary = json_ordered(timing_pairs)
+
+  -- SCORE MILESTONES (top-level)
+  local milestones_array = {}
+  for _, ms in ipairs(score_milestones) do
+    local ms_pairs = {
+      { "score", ms.score },
+      { "frame", ms.frame },
+    }
+    if ms.stage then
+      table.insert(ms_pairs, { "stage", ms.stage })
+    elseif ms.board then
+      table.insert(ms_pairs, { "board", ms.board })
+    end
+    table.insert(ms_pairs, { "screen_num", ms.screen_num })
+    table.insert(ms_pairs, { "bonus_timer", ms.bonus_timer })
+    table.insert(milestones_array, json_ordered(ms_pairs))
+  end
+
+  -- DEATHS (extracted from stage_data)
+  local deaths_array = {}
+  for _, stage in ipairs(stage_data) do
+    if stage.death then
+      local death_pairs = {
+        { "death_num", stage.death_num },
+        { "frame", stage.frame },
+      }
+      if GAME_TYPE == "dkong3" then
+        table.insert(death_pairs, { "board", stage.board })
+        table.insert(death_pairs, { "board_number", stage.level })
+      else
+        table.insert(death_pairs, { "stage", stage.stage })
+        table.insert(death_pairs, { "screen_num", stage.screen_num })
+      end
+      table.insert(death_pairs, { "screen_type", stage.screen_type })
+      table.insert(death_pairs, { "death_points", stage.score_earned })
+      table.insert(death_pairs, { "running_total", stage.total_score })
+      table.insert(death_pairs, { "lives", stage.lives or 0 })
+      table.insert(death_pairs, { "bonus_timer", stage.bonus_timer })
+      table.insert(deaths_array, json_ordered(death_pairs))
+    end
+  end
+
+  -- STAGES (completed stages only: no level totals, no deaths)
+  local stages_array = {}
+  for _, stage in ipairs(stage_data) do
+    if not stage.is_level_total and not stage.death then
+      local stage_pairs = {}
+      if GAME_TYPE == "dkong3" then
+        table.insert(stage_pairs, { "attempt_num", stage.screen_num })
+        table.insert(stage_pairs, { "board", stage.board })
+        table.insert(stage_pairs, { "board_number", stage.level })
+      else
+        table.insert(stage_pairs, { "screen_num", stage.screen_num })
+        table.insert(stage_pairs, { "stage", stage.stage })
+        table.insert(stage_pairs, { "level", stage.level })
+      end
+      table.insert(stage_pairs, { "screen_type", stage.screen_type })
+      table.insert(stage_pairs, { "board_score", stage.score_earned })
+      table.insert(stage_pairs, { "running_total", stage.total_score })
+      table.insert(stage_pairs, { "lives", stage.lives or 0 })
+      table.insert(stage_pairs, { "frame", stage.frame })
+      table.insert(stage_pairs, { "bonus_timer", stage.bonus_timer })
+
+      if stage.avg_type then
+        table.insert(stage_pairs, { "avg_type", stage.avg_type })
+        table.insert(stage_pairs, { "avg_value", stage.avg_value })
+      end
+
+      if stage.pace then
+        table.insert(stage_pairs, { "pace", stage.pace })
+        if stage.pace_22_4 then
+          table.insert(stage_pairs, { "pace_22_4", stage.pace_22_4 })
+        end
+      end
+
+      table.insert(stages_array, json_ordered(stage_pairs))
+    end
+  end
+
+  -- ASSEMBLE AND WRITE
+  local root = json_ordered({
+    { "metadata", metadata },
+    { "scoring_summary", scoring_summary },
+    { "timing_summary", timing_summary },
+    { "score_milestones", milestones_array },
+    { "deaths", deaths_array },
+    { "stages", stages_array },
+  })
+
+  file:write(to_json(root, 0))
+  file:write("\n")
 
   file:close()
   print(string.format("[OK] JSON exported to: %s", JSON_FILE))
+end
+
+-- ============================================================================
+-- TEXT EXPORT
+-- ============================================================================
+
+-- Helper: compute playing time frames (start button to game over VRAM, fallback to end_frame)
+local function get_playing_time_frames()
+  if start_frame and game_over_vram_frame then
+    return game_over_vram_frame - start_frame
+  elseif start_frame and end_frame then
+    return end_frame - start_frame
+  end
+  return nil
 end
 
 -- Export to Text
@@ -1718,24 +2085,26 @@ local function export_text()
       break
     end
 
-    -- Header
-    local config = get_config()
+    -- HEADER
     file:write("=== BLOSSOM SCORE LOG ===\n")
     file:write(string.format("Game: %s\n", config.full_name))
+    file:write(string.format("Variation: %s\n", game_variation or ""))
     file:write(string.format("romset: %s\n", config.romset))
     file:write(string.format("INP file: %s\n", get_inp_filename()))
-    file:write(string.format("Variation: %s\n", game_variation or ""))
-    -- Add playing time if available
-    if start_frame and end_frame then
-      local duration_frames = end_frame - start_frame
-      file:write(string.format("Estimated Playing Time: %s\n", format_duration(duration_frames)))
-    end
+    file:write(string.format("MAME version: %s\n", detect_mame_version()))
+    file:write(string.format("BLOSSOM version: %s\n", BLOSSOM_VERSION))
+
+    -- SCORING SUMMARY
+    file:write("\nSCORING SUMMARY\n")
     file:write(string.format("Final Score: %s\n", format_number(prev_score)))
     if final_board ~= "" then
       file:write(string.format("Final Board: %s\n", final_board))
     end
+    file:write(string.format("Total Boards Reached: %d\n", dk3_actual_board_num + 1))
+    file:write(string.format("Death Count: %d\n", death_count))
+    file:write(string.format("Total Death Points: %s\n", format_number(total_death_points)))
 
-    -- Display RBS milestones
+    -- RBS milestones (score data)
     for _, rbs in ipairs(dk3_rbs_milestones) do
       file:write(
         string.format(
@@ -1747,7 +2116,7 @@ local function export_text()
       )
     end
 
-    -- Display Loop milestones
+    -- Loop milestones (score data)
     for _, loop in ipairs(dk3_loop_milestones) do
       file:write(
         string.format(
@@ -1759,7 +2128,7 @@ local function export_text()
       )
     end
 
-    -- Screen type averages (only shown if max difficulty was reached)
+    -- Screen type averages (max difficulty only)
     if dk3_max_diff_count > 0 then
       for i = 0, 2 do
         local idx = i + 1
@@ -1778,9 +2147,8 @@ local function export_text()
     -- Life statistics
     local life_stats = calculate_dk3_life_stats()
     if life_stats then
-      file:write("\n") -- Blank line before life stats
+      file:write("\n")
 
-      -- Only show Total Lives for Marathon variations (redundant for 5 Lives)
       if game_variation and not game_variation:match("5 Lives") then
         file:write(string.format("Total Lives: %d\n", life_stats.total_lives))
       end
@@ -1789,14 +2157,12 @@ local function export_text()
         string.format("First Life Score: %s\n", format_number(life_stats.first_life_score))
       )
 
-      -- Only show 5 Lives Score if: Marathon variation AND player died 5+ times
       if life_stats.five_lives_score and game_variation and not game_variation:match("5 Lives") then
         file:write(string.format("5 Lives Score: %s\n", format_number(life_stats.five_lives_score)))
       end
 
       file:write(string.format("Last Life Score: %s\n", format_number(life_stats.last_life_score)))
 
-      -- Longest life by points
       local longest_points_str = "#"
         .. table.concat(life_stats.longest_life_points.life_nums, ", #")
       file:write(
@@ -1807,7 +2173,6 @@ local function export_text()
         )
       )
 
-      -- Longest life by boards
       local longest_boards_str = "#"
         .. table.concat(life_stats.longest_life_boards.life_nums, ", #")
       file:write(
@@ -1818,7 +2183,6 @@ local function export_text()
         )
       )
 
-      -- Shortest life by points
       local shortest_points_str = "#"
         .. table.concat(life_stats.shortest_life_points.life_nums, ", #")
       file:write(
@@ -1829,7 +2193,6 @@ local function export_text()
         )
       )
 
-      -- Shortest life by boards
       local shortest_boards_str = "#"
         .. table.concat(life_stats.shortest_life_boards.life_nums, ", #")
       file:write(
@@ -1849,8 +2212,90 @@ local function export_text()
       file:write(string.format("Average Life (boards): %d\n", math.floor(life_stats.avg_boards)))
     end
 
-    file:write(string.format("Total Death Points: %s\n\n", format_number(total_death_points)))
-    file:write("===================================\n\n")
+    -- TIMING SUMMARY
+    file:write("\nTIMING SUMMARY\n")
+
+    local playing_frames = get_playing_time_frames()
+    if playing_frames then
+      file:write(string.format("Unofficial Playing Time: %s\n", format_duration(playing_frames)))
+    end
+
+    -- DK3 milestone timing
+    for _, md in ipairs(dk3_max_diff_milestones) do
+      local time_str = ""
+      if start_frame then
+        time_str = string.format(" (%s)", format_duration(md.frame - start_frame))
+      end
+      file:write(
+        string.format(
+          "Max Difficulty %d: Frame %s%s\n",
+          md.count,
+          format_number(md.frame),
+          time_str
+        )
+      )
+    end
+
+    for _, rbs in ipairs(dk3_rbs_milestones) do
+      local time_str = ""
+      if start_frame then
+        time_str = string.format(" (%s)", format_duration(rbs.frame - start_frame))
+      end
+      file:write(
+        string.format("RBS %d: Frame %s%s\n", rbs.rbs_num, format_number(rbs.frame), time_str)
+      )
+    end
+
+    for _, loop in ipairs(dk3_loop_milestones) do
+      local time_str = ""
+      if start_frame then
+        time_str = string.format(" (%s)", format_duration(loop.frame - start_frame))
+      end
+      file:write(
+        string.format(
+          "Loop %d Complete: Frame %s%s\n",
+          loop.loop_num,
+          format_number(loop.frame),
+          time_str
+        )
+      )
+    end
+
+    -- Full game frame range
+    if start_frame and (game_over_vram_frame or end_frame) then
+      local end_f = game_over_vram_frame or end_frame
+      local dur = end_f - start_frame
+      file:write(
+        string.format(
+          "Full Game: Frame %s - %s (%s frames)\n",
+          format_number(start_frame),
+          format_number(end_f),
+          format_number(dur)
+        )
+      )
+    end
+
+    -- SCORE MILESTONES
+    if #score_milestones > 0 then
+      file:write("\nSCORE MILESTONES\n")
+      for _, ms in ipairs(score_milestones) do
+        local board_str = ms.board and string.format(" | Board %d", ms.board) or ""
+        local timer_str = ms.bonus_timer
+            and string.format(" | Timer: %s", format_number(ms.bonus_timer))
+          or ""
+        file:write(
+          string.format(
+            "%s (Frame %s)%s%s\n",
+            format_number(ms.score),
+            format_number(ms.frame),
+            board_str,
+            timer_str
+          )
+        )
+      end
+    end
+
+    file:write("\n===================================\n\n")
 
     -- Board data
     for _, board in ipairs(stage_data) do
@@ -1904,52 +2349,50 @@ local function export_text()
       end
     end
 
-    -- Header
+    -- HEADER
     file:write("=== BLOSSOM SCORE LOG ===\n")
     file:write(string.format("Game: %s\n", config.full_name))
     file:write(string.format("romset: %s\n", config.romset))
     file:write(string.format("INP file: %s\n", get_inp_filename()))
+    file:write(string.format("MAME version: %s\n", detect_mame_version()))
+    file:write(string.format("BLOSSOM version: %s\n", BLOSSOM_VERSION))
 
-    -- Add playing time if available
-    if start_frame and end_frame then
-      local duration_frames = end_frame - start_frame
-      file:write(string.format("Estimated Playing Time: %s\n", format_duration(duration_frames)))
-    end
-
+    -- SCORING SUMMARY
+    file:write("\nSCORING SUMMARY\n")
     file:write(string.format("Final Score: %s\n", format_number(prev_score)))
     if final_stage ~= "" then
       file:write(string.format("Final Stage: %s\n", final_stage))
     end
+    file:write(string.format("Total Screens: %d\n", current_screen_num))
+    file:write(string.format("Death Count: %d\n", death_count))
+    file:write(string.format("Total Death Points: %s\n", format_number(total_death_points)))
 
-    -- Show pace based on game type and final stage
+    -- Pace
     if final_level and last_pace then
       if config.supports_22_4_pace then
-        -- Crazy Kong Part II
         if
           final_level == 22
           and final_stage_position
           and final_stage_position >= 1
           and final_stage_position <= 3
         then
-          -- On 22-1, 22-2, or 22-3: show only 22-4 pace
           if last_pace_22_4 then
             file:write(string.format("22-4 Pace: %s\n", format_number(last_pace_22_4)))
           end
         elseif final_level < 22 then
-          -- Before level 22: show both paces
           file:write(string.format("22-1 Pace: %s\n", format_number(last_pace)))
           if last_pace_22_4 then
             file:write(string.format("22-4 Pace: %s\n", format_number(last_pace_22_4)))
           end
         end
       else
-        -- Donkey Kong and Donkey Kong Junior
         if final_level < 22 then
           file:write(string.format("Pace: %s\n", format_number(last_pace)))
         end
       end
     end
 
+    -- Start score
     if start_score_total > 0 then
       if start_phase_deaths > 0 then
         file:write(
@@ -1965,14 +2408,11 @@ local function export_text()
       end
     end
 
-    -- Best/Worst statistics
-    -- Determine display order based on game
+    -- Screen type averages
     local display_order
     if GAME_TYPE == "dkongjr" then
-      -- DKJR gameplay order: Jungle, Spring, Chain, Hideout
       display_order = { 2, 1, 3, 4 }
     else
-      -- DK/CK order: Barrel, Pie, Spring, Rivet
       display_order = { 1, 2, 3, 4 }
     end
 
@@ -2011,23 +2451,115 @@ local function export_text()
       )
     end
 
-    file:write(string.format("Total Death Points: %s\n\n", format_number(total_death_points)))
-    file:write("===================================\n\n")
+    -- TIMING SUMMARY
+    file:write("\nTIMING SUMMARY\n")
 
-    -- Track when we change levels to insert separators
+    -- Unofficial times (guaranteed: playing time; conditional: start, killscreen)
+    local playing_frames = get_playing_time_frames()
+    if playing_frames then
+      file:write(string.format("Unofficial Playing Time: %s\n", format_duration(playing_frames)))
+    end
+
+    if speedrun_start_frame and speedrun_end_frame then
+      local dur = speedrun_end_frame - speedrun_start_frame
+      file:write(string.format("Unofficial Speedrun Start Time: %s\n", format_duration(dur)))
+    end
+
+    if start_frame and start_phase_end_frame then
+      local dur = start_phase_end_frame - start_frame
+      file:write(string.format("Unofficial Standard Start Time: %s\n", format_duration(dur)))
+    end
+
+    if speedrun_start_frame and killscreen_frame then
+      local dur = killscreen_frame - speedrun_start_frame
+      file:write(string.format("Unofficial Speedrun Killscreen Time: %s\n", format_duration(dur)))
+    end
+
+    -- Frame ranges
+    file:write("\n")
+
+    if start_frame and (game_over_vram_frame or end_frame) then
+      local end_f = game_over_vram_frame or end_frame
+      local dur = end_f - start_frame
+      file:write(
+        string.format(
+          "Full Game: Frame %s - %s (%s frames)\n",
+          format_number(start_frame),
+          format_number(end_f),
+          format_number(dur)
+        )
+      )
+    end
+
+    if speedrun_start_frame and speedrun_end_frame then
+      local dur = speedrun_end_frame - speedrun_start_frame
+      file:write(
+        string.format(
+          "Speedrun Start: Frame %s - %s (%s frames)\n",
+          format_number(speedrun_start_frame),
+          format_number(speedrun_end_frame),
+          format_number(dur)
+        )
+      )
+    end
+
+    if start_frame and start_phase_end_frame then
+      local dur = start_phase_end_frame - start_frame
+      file:write(
+        string.format(
+          "Standard Start: Frame %s - %s (%s frames)\n",
+          format_number(start_frame),
+          format_number(start_phase_end_frame),
+          format_number(dur)
+        )
+      )
+    end
+
+    if speedrun_start_frame and killscreen_frame then
+      local dur = killscreen_frame - speedrun_start_frame
+      file:write(
+        string.format(
+          "Speedrun Killscreen: Frame %s - %s (%s frames)\n",
+          format_number(speedrun_start_frame),
+          format_number(killscreen_frame),
+          format_number(dur)
+        )
+      )
+    end
+
+    -- SCORE MILESTONES
+    if #score_milestones > 0 then
+      file:write("\nSCORE MILESTONES\n")
+      for _, ms in ipairs(score_milestones) do
+        local stage_str = ms.stage and string.format(" | %s", ms.stage) or ""
+        local timer_str = ms.bonus_timer
+            and string.format(" | Timer: %s", format_number(ms.bonus_timer))
+          or ""
+        file:write(
+          string.format(
+            "%s (Frame %s)%s%s\n",
+            format_number(ms.score),
+            format_number(ms.frame),
+            stage_str,
+            timer_str
+          )
+        )
+      end
+    end
+
+    file:write("\n===================================\n\n")
+
+    -- Per-stage data (unchanged from current format)
     local current_output_level = nil
 
     for _, stage in ipairs(stage_data) do
       if stage.is_level_total then
-        -- Level total line
         local level_display = format_level_for_display(stage.level)
         file:write(string.format("L%s: %s\n", level_display, format_number(stage.score_earned)))
         file:write("---\n")
         current_output_level = stage.level
       else
-        -- Regular stage or death
         if stage.death then
-          -- Death format: "19-3 Death #3: 1,000 --> 1,014,000"
           file:write(
             string.format(
               "Death #%d - %s: %s --> %s\n",
@@ -2038,7 +2570,6 @@ local function export_text()
             )
           )
         else
-          -- Completed stage format with avg and pace data
           local stage_line = string.format(
             "%s: %s --> %s",
             stage.stage,
@@ -2046,13 +2577,11 @@ local function export_text()
             format_number(stage.total_score)
           )
 
-          -- Add average if present
           if stage.avg_type and stage.avg_value then
             stage_line = stage_line
               .. string.format(" | %s: %s", stage.avg_type, format_number_decimal(stage.avg_value))
           end
 
-          -- Add pace if present
           if stage.pace then
             if stage.pace_22_4 then
               stage_line = stage_line
@@ -2098,9 +2627,10 @@ local function print_platformer_summary(header_text, current_score)
 
   print(string.format("\n=== %s ===", header_text))
   -- Display playing time if we have valid start/end frames
-  if start_frame and end_frame then
-    local duration_frames = end_frame - start_frame
-    print(string.format("Estimated Playing Time: %s", format_duration(duration_frames)))
+  if start_frame and (game_over_vram_frame or end_frame) then
+    local end_f = game_over_vram_frame or end_frame
+    local duration_frames = end_f - start_frame
+    print(string.format("Unofficial Playing Time: %s", format_duration(duration_frames)))
   end
   print(string.format("Final Score: %s", format_number(current_score)))
   if final_stage ~= "" then
@@ -2140,7 +2670,12 @@ local function print_platformer_summary(header_text, current_score)
   if start_score_total > 0 then
     if start_phase_deaths > 0 then
       print(
-        string.format("Start Score (excluding deaths): %s", format_number(start_score_for_pace))
+        string.format(
+          "Start Score: %s (%s + %s)",
+          format_number(start_score_total),
+          format_number(start_score_for_pace),
+          format_number(start_phase_death_points)
+        )
       )
     else
       print(string.format("Start Score: %s", format_number(start_score_total)))
@@ -2194,6 +2729,7 @@ local function print_platformer_summary(header_text, current_score)
     )
   end
 
+  print(string.format("Death Count: %d", death_count))
   print(string.format("Total Death Points: %s", format_number(total_death_points)))
 end
 
@@ -2209,17 +2745,16 @@ local function print_dk3_summary(header_text, current_score)
   end
 
   print(string.format("\n=== %s ===", header_text))
+  if start_frame and (game_over_vram_frame or end_frame) then
+    local final_frame = game_over_vram_frame or end_frame
+    local duration_frames = final_frame - start_frame
+    print(string.format("Playing Time: %s", format_duration(duration_frames)))
+  end
   print(string.format("Final Score: %s", format_number(current_score)))
   if final_board ~= "" then
     print(string.format("Final Board: %s", final_board))
   end
   print(string.format("Total Boards Reached: %d", dk3_actual_board_num + 1))
-
-  -- Display playing time if we have valid start/end frames
-  if start_frame and end_frame then
-    local duration_frames = end_frame - start_frame
-    print(string.format("Estimated Playing Time: %s", format_duration(duration_frames)))
-  end
 
   -- Display RBS milestones
   for _, rbs in ipairs(dk3_rbs_milestones) do
@@ -2328,6 +2863,7 @@ local function print_dk3_summary(header_text, current_score)
     print(string.format("Average Life (boards): %d", math.floor(life_stats.avg_boards)))
   end
 
+  print(string.format("Death Count: %d", death_count))
   print(string.format("Total Death Points: %s", format_number(total_death_points)))
 end
 
@@ -2417,14 +2953,20 @@ local function on_frame_platformer()
   if gameplay_started then
     local current_score = read_score_with_rollover_check()
     while current_score >= next_score_milestone do
-      table.insert(score_milestones, { score = next_score_milestone, frame = frame_count })
+      table.insert(score_milestones, {
+        score = next_score_milestone,
+        frame = frame_count,
+        stage = get_stage_name(prev_level, level_position[prev_level] or 0),
+        screen_num = current_screen_num,
+        bonus_timer = read_bonus_timer(),
+      })
       print(
         string.format(
           "  *** %s Milestone (Frame %d) ***",
           format_number(next_score_milestone),
           frame_count
         )
-      ) --TEST, REMOVE LATER
+      )
       next_score_milestone = next_score_milestone + 100000
     end
   end
@@ -2436,13 +2978,6 @@ local function on_frame_platformer()
     local vram_tile = read_byte(config.addresses.level_display_vram)
     if vram_tile == config.start_level + 1 then
       start_phase_end_frame = frame_count
-      print(
-        string.format(
-          "  [DEBUG] Start phase end detected (Frame %d, VRAM tile=0x%02X)",
-          frame_count,
-          vram_tile
-        )
-      )
     end
   end
 
@@ -2456,17 +2991,6 @@ local function on_frame_platformer()
       spawn_y = py
     elseif px ~= spawn_x or py ~= spawn_y then
       speedrun_start_frame = frame_count + 1
-      print(
-        string.format(
-          "  [DEBUG] Speedrun start: Frame %d (memory frame %d, spawn=%d,%d → %d,%d)",
-          speedrun_start_frame,
-          frame_count,
-          spawn_x,
-          spawn_y,
-          px,
-          py
-        )
-      )
     end
   end
 
@@ -2486,14 +3010,6 @@ local function on_frame_platformer()
       local rivet_count = read_byte(config.addresses.rivet_key_count)
       if rivet_count == 0 then
         speedrun_end_frame = frame_count
-        print(
-          string.format(
-            "  [DEBUG] Speedrun end: rivet/key clear (Frame %d, level=%d, screen_type=%d)",
-            frame_count,
-            level,
-            screen_type
-          )
-        )
       end
     end
   end
@@ -2512,17 +3028,6 @@ local function on_frame_platformer()
     local ks_jump = read_byte(config.addresses.jump_status)
     if ks_flag == 0x03 and ks_secondary == 0x00 and ks_player == 0x01 and ks_jump ~= 0x01 then
       killscreen_frame = frame_count + 3
-      print(
-        string.format(
-          "  [DEBUG] Killscreen detected: trigger frame %d, visual death frame %d (flag=%02X sec=%02X player=%02X jump=%02X)",
-          frame_count,
-          killscreen_frame,
-          ks_flag,
-          ks_secondary,
-          ks_player,
-          ks_jump
-        )
-      )
     end
   end
 
@@ -2544,7 +3049,7 @@ local function on_frame_platformer()
       current_level_being_played = level
     end
 
-    if stage_start_score == 0 or last_stage_was_completed then
+    if not first_gameplay_seen or last_stage_was_completed then
       -- This is a new unique screen (not a retry after death)
       current_screen_num = current_screen_num + 1
       last_stage_was_completed = false
@@ -2561,6 +3066,7 @@ local function on_frame_platformer()
     stage_start_score = current_score
     stage_completed_mode = nil
     prev_score = current_score
+    first_gameplay_seen = true
   end
 
   -- Track screen/level during gameplay
@@ -2640,14 +3146,6 @@ local function on_frame_platformer()
       if vram_tile == 0x17 then
         game_over_vram_frame = frame_count
       end
-      print(
-        string.format(
-          "  [DEBUG] Game Over VRAM: tile=0x%02X, end_frame=%d, vram_frame=%s (expect end_frame+1)",
-          vram_tile,
-          end_frame,
-          game_over_vram_frame and tostring(game_over_vram_frame) or "nil"
-        )
-      )
     end
 
     -- Only record final level total if NOT on killscreen death
@@ -2708,7 +3206,7 @@ local function on_frame_dkong3()
     if settle_now then
       local current_score = read_score_with_rollover_check()
       death_count = death_count + 1
-      local score_earned = current_score - stage_start_score
+      local score_earned = current_score - dk3_death_pending_start_score
 
       total_death_points = total_death_points + score_earned
 
@@ -2795,14 +3293,20 @@ local function on_frame_dkong3()
   if gameplay_started then
     local current_score = read_score_with_rollover_check()
     while current_score >= next_score_milestone do
-      table.insert(score_milestones, { score = next_score_milestone, frame = frame_count })
+      table.insert(score_milestones, {
+        score = next_score_milestone,
+        frame = frame_count,
+        board = dk3_actual_board_num + 1,
+        screen_num = current_screen_num,
+        bonus_timer = read_bonus_timer(),
+      })
       print(
         string.format(
           "  *** %s Milestone (Frame %d) ***",
           format_number(next_score_milestone),
           frame_count
         )
-      ) --TEST, REMOVE LATER
+      )
       next_score_milestone = next_score_milestone + 100000
     end
   end
@@ -2872,6 +3376,7 @@ local function on_frame_dkong3()
     dk3_death_pending = true
     dk3_death_pending_screen_type = screen_type
     dk3_death_pending_level = level
+    dk3_death_pending_start_score = stage_start_score
     -- Capture lives at detection time (haven't decremented in memory yet)
     dk3_death_pending_lives_at_death = lives > 0 and (lives - 1) or 0
     dk3_death_pending_bonus = read_bonus_timer()
@@ -2899,14 +3404,6 @@ local function on_frame_dkong3()
       if vram_tile == 0x17 then
         game_over_vram_frame = frame_count
       end
-      print(
-        string.format(
-          "  [DEBUG] Game Over VRAM: tile=0x%02X, end_frame=%d, vram_frame=%s (expect end_frame+1)",
-          vram_tile,
-          end_frame,
-          game_over_vram_frame and tostring(game_over_vram_frame) or "nil"
-        )
-      )
     end
 
     print_dk3_summary("GAME OVER", current_score)
@@ -2986,7 +3483,8 @@ register_stop_callback(function()
       current_score,
       true,
       death_count,
-      read_byte(stop_config.addresses.lives)
+      read_byte(stop_config.addresses.lives),
+      death_pending_bonus
     )
 
     last_stage_was_completed = false
@@ -2998,7 +3496,7 @@ register_stop_callback(function()
   if dk3_death_pending then
     local current_score = read_score_with_rollover_check()
     death_count = death_count + 1
-    local score_earned = current_score - stage_start_score
+    local score_earned = current_score - dk3_death_pending_start_score
     total_death_points = total_death_points + score_earned
 
     local death_board_num = dk3_actual_board_num + 1
@@ -3012,7 +3510,8 @@ register_stop_callback(function()
       true,
       death_count,
       dk3_death_pending_lives_at_death,
-      dk3_death_pending_screen_type
+      dk3_death_pending_screen_type,
+      dk3_death_pending_bonus
     )
 
     local boards_completed = dk3_actual_board_num - dk3_current_life_start_board + 1

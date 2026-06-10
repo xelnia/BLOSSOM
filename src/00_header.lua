@@ -5,3 +5,5 @@
 -- Supported games: dkong, dkongjr, ckongpt2, dkong3
 -- Supported MAME versions: 0.175+
 -- Exports scoring data and summary in CSV, JSON, and TXT format
+
+local BLOSSOM_VERSION = "2.0.0"

@@ -29,7 +29,7 @@ local GAME_CONFIGS = {
     short_name = "Donkey Kong",
     full_name = "Donkey Kong (US Set 1)",
     romset = "dkong",
-    frame_rate = 60.606060606060606,
+    frame_rate = 2000 / 33,
 
     -- MEMORY ADDRESSES
     addresses = {
@@ -103,7 +103,7 @@ local GAME_CONFIGS = {
     short_name = "Donkey Kong Junior",
     full_name = "Donkey Kong Junior",
     romset = "dkongjr",
-    frame_rate = 60.606060606060606,
+    frame_rate = 2000 / 33,
 
     -- MEMORY ADDRESSES
     addresses = {
@@ -251,7 +251,7 @@ local GAME_CONFIGS = {
     short_name = "Donkey Kong 3",
     full_name = "Donkey Kong 3",
     romset = "dkong3",
-    frame_rate = 60.606060606060606,
+    frame_rate = 2000 / 33,
 
     -- MEMORY ADDRESSES
     addresses = {

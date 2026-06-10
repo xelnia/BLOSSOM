@@ -95,14 +95,21 @@ local function record_board_dk3(
     if memory_board_check == config.max_diff_board - 1 then
       dk3_max_diff_count = dk3_max_diff_count + 1
       dk3_max_diff_reached = true
-      if not dk3_max_diff_frame then
-        dk3_max_diff_frame = frame_count
-      end
+      local start_phase_score = total_score - dk3_loop_start_score
+
+      -- Store milestone data (parallel to RBS/loop milestones)
+      table.insert(dk3_max_diff_milestones, {
+        count = dk3_max_diff_count,
+        total_score = total_score,
+        start_phase_score = start_phase_score,
+        frame = frame_count,
+      })
+
       print(
         string.format(
           "\n>>> MAX DIFFICULTY REACHED <<< | Start Phase %d Score: %s | Total Score: %s\n",
           dk3_max_diff_count,
-          format_number(total_score),
+          format_number(start_phase_score),
           format_number(total_score)
         )
       )
@@ -197,6 +204,7 @@ local function record_stage(
     pace = nil, -- Will store the calculated pace
     pace_22_4 = nil, -- Will store the 22-4 extended pace (ckongpt2 only)
     bonus_timer = bonus_timer,
+    lives = lives_remaining,
   }
 
   table.insert(stage_data, stage_info)

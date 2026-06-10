@@ -49,7 +49,8 @@ register_stop_callback(function()
       current_score,
       true,
       death_count,
-      read_byte(stop_config.addresses.lives)
+      read_byte(stop_config.addresses.lives),
+      death_pending_bonus
     )
 
     last_stage_was_completed = false
@@ -61,7 +62,7 @@ register_stop_callback(function()
   if dk3_death_pending then
     local current_score = read_score_with_rollover_check()
     death_count = death_count + 1
-    local score_earned = current_score - stage_start_score
+    local score_earned = current_score - dk3_death_pending_start_score
     total_death_points = total_death_points + score_earned
 
     local death_board_num = dk3_actual_board_num + 1
@@ -75,7 +76,8 @@ register_stop_callback(function()
       true,
       death_count,
       dk3_death_pending_lives_at_death,
-      dk3_death_pending_screen_type
+      dk3_death_pending_screen_type,
+      dk3_death_pending_bonus
     )
 
     local boards_completed = dk3_actual_board_num - dk3_current_life_start_board + 1

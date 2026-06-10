@@ -70,10 +70,6 @@ local function read_score_with_rollover_check()
   -- Compare raw scores to detect the transition, not adjusted scores
   if prev_raw_score > 900000 and raw_score < 100000 then
     score_offset = score_offset + 1000000
-    -- Capture frame for first million-point milestone (DK3 T7)
-    if not dk3_million_frame then
-      dk3_million_frame = frame_count
-    end
   end
 
   prev_raw_score = raw_score
@@ -114,19 +110,21 @@ local function read_bonus_timer()
   end
 end
 
--- Format frame count as H:MM:SS playing time
+-- Format frame count as H:MM:SS.mmm playing time (rounded to nearest millisecond)
 local function format_duration(frames)
   if not frames or frames < 0 then
-    return "0:00:00"
+    return "0:00:00.000"
   end
 
   local config = get_config()
-  local seconds = frames / config.frame_rate
-  local hours = math.floor(seconds / 3600)
-  local minutes = math.floor((seconds % 3600) / 60)
-  local secs = math.floor(seconds % 60)
+  local total_ms = math.floor((frames / config.frame_rate) * 1000 + 0.5)
+  local ms = total_ms % 1000
+  local total_secs = math.floor(total_ms / 1000)
+  local hours = math.floor(total_secs / 3600)
+  local minutes = math.floor((total_secs % 3600) / 60)
+  local secs = total_secs % 60
 
-  return string.format("%d:%02d:%02d", hours, minutes, secs)
+  return string.format("%d:%02d:%02d.%03d", hours, minutes, secs, ms)
 end
 
 -- FORMATTING HELPERS
