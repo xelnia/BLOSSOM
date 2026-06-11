@@ -2225,10 +2225,6 @@ local function export_text()
       file:write("\nTIMING SUMMARY\n")
     end
 
-    if playing_frames then
-      file:write(string.format("Unofficial Playing Time: %s\n", format_duration(playing_frames)))
-    end
-
     -- DK3 milestone timing
     for _, md in ipairs(dk3_max_diff_milestones) do
       local time_str = ""
@@ -2270,13 +2266,19 @@ local function export_text()
       )
     end
 
-    -- Full game frame range
+    -- Elapsed times
+    if playing_frames then
+      file:write(string.format("Unofficial Full Game Time: %s\n", format_duration(playing_frames)))
+    end
+
+    -- Frame ranges
     if start_frame and (game_over_vram_frame or end_frame) then
       local end_f = game_over_vram_frame or end_frame
       local dur = end_f - start_frame
+      file:write("\n")
       file:write(
         string.format(
-          "Full Game: Frame %s - %s (%s frames)\n",
+          "Full Game Frames: %s - %s (%s frames)\n",
           format_number(start_frame),
           format_number(end_f),
           format_number(dur)
@@ -2482,11 +2484,8 @@ local function export_text()
       file:write("\nTIMING SUMMARY\n")
     end
 
-    -- Unofficial times (guaranteed: playing time; conditional: start, killscreen)
-    if playing_frames then
-      file:write(string.format("Unofficial Playing Time: %s\n", format_duration(playing_frames)))
-    end
-
+    -- Unofficial times (guaranteed: full game time; conditional: start, killscreen)
+    -- Ordered shortest to longest expected duration
     if speedrun_start_frame and speedrun_end_frame then
       local dur = speedrun_end_frame - speedrun_start_frame
       file:write(string.format("Unofficial Speedrun Start Time: %s\n", format_duration(dur)))
@@ -2502,29 +2501,20 @@ local function export_text()
       file:write(string.format("Unofficial Speedrun Killscreen Time: %s\n", format_duration(dur)))
     end
 
-    -- Frame ranges
-    if has_plat_timing then
-      file:write("\n")
+    if playing_frames then
+      file:write(string.format("Unofficial Full Game Time: %s\n", format_duration(playing_frames)))
     end
 
-    if start_frame and (game_over_vram_frame or end_frame) then
-      local end_f = game_over_vram_frame or end_frame
-      local dur = end_f - start_frame
-      file:write(
-        string.format(
-          "Full Game: Frame %s - %s (%s frames)\n",
-          format_number(start_frame),
-          format_number(end_f),
-          format_number(dur)
-        )
-      )
+    -- Frame ranges (same order as elapsed times)
+    if has_plat_timing then
+      file:write("\n")
     end
 
     if speedrun_start_frame and speedrun_end_frame then
       local dur = speedrun_end_frame - speedrun_start_frame
       file:write(
         string.format(
-          "Speedrun Start: Frame %s - %s (%s frames)\n",
+          "Speedrun Start Frames: %s - %s (%s frames)\n",
           format_number(speedrun_start_frame),
           format_number(speedrun_end_frame),
           format_number(dur)
@@ -2536,7 +2526,7 @@ local function export_text()
       local dur = start_phase_end_frame - start_frame
       file:write(
         string.format(
-          "Standard Start: Frame %s - %s (%s frames)\n",
+          "Standard Start Frames: %s - %s (%s frames)\n",
           format_number(start_frame),
           format_number(start_phase_end_frame),
           format_number(dur)
@@ -2548,9 +2538,22 @@ local function export_text()
       local dur = killscreen_frame - speedrun_start_frame
       file:write(
         string.format(
-          "Speedrun Killscreen: Frame %s - %s (%s frames)\n",
+          "Speedrun Killscreen Frames: %s - %s (%s frames)\n",
           format_number(speedrun_start_frame),
           format_number(killscreen_frame),
+          format_number(dur)
+        )
+      )
+    end
+
+    if start_frame and (game_over_vram_frame or end_frame) then
+      local end_f = game_over_vram_frame or end_frame
+      local dur = end_f - start_frame
+      file:write(
+        string.format(
+          "Full Game Frames: %s - %s (%s frames)\n",
+          format_number(start_frame),
+          format_number(end_f),
           format_number(dur)
         )
       )
@@ -2665,12 +2668,6 @@ local function print_platformer_summary(header_text, current_score)
   end
 
   print(string.format("\n=== %s ===", header_text))
-  -- Display playing time if we have valid start/end frames
-  if start_frame and (game_over_vram_frame or end_frame) then
-    local final_frame = game_over_vram_frame or end_frame
-    local duration_frames = final_frame - start_frame
-    print(string.format("Playing Time: %s", format_duration(duration_frames)))
-  end
   print(string.format("Final Score: %s", format_number(current_score)))
   if final_stage ~= "" then
     print(string.format("Final Stage: %s", final_stage))
@@ -2771,18 +2768,18 @@ local function print_platformer_summary(header_text, current_score)
   print(string.format("Recorded Deaths: %d", death_count))
   print(string.format("Total Death Points: %s", format_number(total_death_points)))
 
-  -- Timing summary
+  -- Timing summary (ordered shortest to longest expected duration)
   print("")
 
   if speedrun_start_frame and speedrun_end_frame then
     local dur = speedrun_end_frame - speedrun_start_frame
     print(
       string.format(
-        "Speedrun Start: Frame %s - %s (%s frames) | %s",
+        "Unofficial Speedrun Start: %s | Frame %s - %s (%s frames)",
+        format_duration(dur),
         format_number(speedrun_start_frame),
         format_number(speedrun_end_frame),
-        format_number(dur),
-        format_duration(dur)
+        format_number(dur)
       )
     )
   end
@@ -2791,11 +2788,11 @@ local function print_platformer_summary(header_text, current_score)
     local dur = start_phase_end_frame - start_frame
     print(
       string.format(
-        "Standard Start: Frame %s - %s (%s frames) | %s",
+        "Unofficial Standard Start: %s | Frame %s - %s (%s frames)",
+        format_duration(dur),
         format_number(start_frame),
         format_number(start_phase_end_frame),
-        format_number(dur),
-        format_duration(dur)
+        format_number(dur)
       )
     )
   end
@@ -2804,11 +2801,11 @@ local function print_platformer_summary(header_text, current_score)
     local dur = killscreen_frame - speedrun_start_frame
     print(
       string.format(
-        "Speedrun Killscreen: Frame %s - %s (%s frames) | %s",
+        "Unofficial Speedrun Killscreen: %s | Frame %s - %s (%s frames)",
+        format_duration(dur),
         format_number(speedrun_start_frame),
         format_number(killscreen_frame),
-        format_number(dur),
-        format_duration(dur)
+        format_number(dur)
       )
     )
   end
@@ -2818,11 +2815,11 @@ local function print_platformer_summary(header_text, current_score)
     local dur = final_frame - start_frame
     print(
       string.format(
-        "Full Game: Frame %s - %s (%s frames) | %s",
+        "Unofficial Full Game: %s | Frame %s - %s (%s frames)",
+        format_duration(dur),
         format_number(start_frame),
         format_number(final_frame),
-        format_number(dur),
-        format_duration(dur)
+        format_number(dur)
       )
     )
   end
@@ -2840,11 +2837,6 @@ local function print_dk3_summary(header_text, current_score)
   end
 
   print(string.format("\n=== %s ===", header_text))
-  if start_frame and (game_over_vram_frame or end_frame) then
-    local final_frame = game_over_vram_frame or end_frame
-    local duration_frames = final_frame - start_frame
-    print(string.format("Playing Time: %s", format_duration(duration_frames)))
-  end
   print(string.format("Final Score: %s", format_number(current_score)))
   if final_board ~= "" then
     print(string.format("Final Board: %s", final_board))
@@ -2960,7 +2952,7 @@ local function print_dk3_summary(header_text, current_score)
   print(string.format("Recorded Deaths: %d", death_count))
   print(string.format("Total Death Points: %s", format_number(total_death_points)))
 
-  -- Timing summary
+  -- Timing summary (DK3 milestones, then full game)
   print("")
 
   for _, md in ipairs(dk3_max_diff_milestones) do
@@ -3001,11 +2993,11 @@ local function print_dk3_summary(header_text, current_score)
     local dur = final_frame - start_frame
     print(
       string.format(
-        "Full Game: Frame %s - %s (%s frames) | %s",
+        "Unofficial Full Game: %s | Frame %s - %s (%s frames)",
+        format_duration(dur),
         format_number(start_frame),
         format_number(final_frame),
-        format_number(dur),
-        format_duration(dur)
+        format_number(dur)
       )
     )
   end

@@ -766,10 +766,6 @@ local function export_text()
       file:write("\nTIMING SUMMARY\n")
     end
 
-    if playing_frames then
-      file:write(string.format("Unofficial Playing Time: %s\n", format_duration(playing_frames)))
-    end
-
     -- DK3 milestone timing
     for _, md in ipairs(dk3_max_diff_milestones) do
       local time_str = ""
@@ -811,13 +807,19 @@ local function export_text()
       )
     end
 
-    -- Full game frame range
+    -- Elapsed times
+    if playing_frames then
+      file:write(string.format("Unofficial Full Game Time: %s\n", format_duration(playing_frames)))
+    end
+
+    -- Frame ranges
     if start_frame and (game_over_vram_frame or end_frame) then
       local end_f = game_over_vram_frame or end_frame
       local dur = end_f - start_frame
+      file:write("\n")
       file:write(
         string.format(
-          "Full Game: Frame %s - %s (%s frames)\n",
+          "Full Game Frames: %s - %s (%s frames)\n",
           format_number(start_frame),
           format_number(end_f),
           format_number(dur)
@@ -1023,11 +1025,8 @@ local function export_text()
       file:write("\nTIMING SUMMARY\n")
     end
 
-    -- Unofficial times (guaranteed: playing time; conditional: start, killscreen)
-    if playing_frames then
-      file:write(string.format("Unofficial Playing Time: %s\n", format_duration(playing_frames)))
-    end
-
+    -- Unofficial times (guaranteed: full game time; conditional: start, killscreen)
+    -- Ordered shortest to longest expected duration
     if speedrun_start_frame and speedrun_end_frame then
       local dur = speedrun_end_frame - speedrun_start_frame
       file:write(string.format("Unofficial Speedrun Start Time: %s\n", format_duration(dur)))
@@ -1043,29 +1042,20 @@ local function export_text()
       file:write(string.format("Unofficial Speedrun Killscreen Time: %s\n", format_duration(dur)))
     end
 
-    -- Frame ranges
-    if has_plat_timing then
-      file:write("\n")
+    if playing_frames then
+      file:write(string.format("Unofficial Full Game Time: %s\n", format_duration(playing_frames)))
     end
 
-    if start_frame and (game_over_vram_frame or end_frame) then
-      local end_f = game_over_vram_frame or end_frame
-      local dur = end_f - start_frame
-      file:write(
-        string.format(
-          "Full Game: Frame %s - %s (%s frames)\n",
-          format_number(start_frame),
-          format_number(end_f),
-          format_number(dur)
-        )
-      )
+    -- Frame ranges (same order as elapsed times)
+    if has_plat_timing then
+      file:write("\n")
     end
 
     if speedrun_start_frame and speedrun_end_frame then
       local dur = speedrun_end_frame - speedrun_start_frame
       file:write(
         string.format(
-          "Speedrun Start: Frame %s - %s (%s frames)\n",
+          "Speedrun Start Frames: %s - %s (%s frames)\n",
           format_number(speedrun_start_frame),
           format_number(speedrun_end_frame),
           format_number(dur)
@@ -1077,7 +1067,7 @@ local function export_text()
       local dur = start_phase_end_frame - start_frame
       file:write(
         string.format(
-          "Standard Start: Frame %s - %s (%s frames)\n",
+          "Standard Start Frames: %s - %s (%s frames)\n",
           format_number(start_frame),
           format_number(start_phase_end_frame),
           format_number(dur)
@@ -1089,9 +1079,22 @@ local function export_text()
       local dur = killscreen_frame - speedrun_start_frame
       file:write(
         string.format(
-          "Speedrun Killscreen: Frame %s - %s (%s frames)\n",
+          "Speedrun Killscreen Frames: %s - %s (%s frames)\n",
           format_number(speedrun_start_frame),
           format_number(killscreen_frame),
+          format_number(dur)
+        )
+      )
+    end
+
+    if start_frame and (game_over_vram_frame or end_frame) then
+      local end_f = game_over_vram_frame or end_frame
+      local dur = end_f - start_frame
+      file:write(
+        string.format(
+          "Full Game Frames: %s - %s (%s frames)\n",
+          format_number(start_frame),
+          format_number(end_f),
           format_number(dur)
         )
       )
