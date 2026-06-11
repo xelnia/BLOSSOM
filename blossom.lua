@@ -567,6 +567,11 @@ local end_frame = nil -- Frame number when gameplay ended
 local prev_start_state = false -- Previous frame's start button state (for edge detection)
 local prev_coin_state = false -- Previous frame's coin button state (for edge detection)
 
+-- INP playback end detection
+local inp_playback_active = false -- Set true at startup if INP playback detected
+local inp_playback_ended = false -- Set true when INP playback option goes empty
+local inp_end_frame = nil -- Frame number when INP end was detected
+
 -- Score milestones (all games)
 local score_milestones = {} -- {score, frame} entries at every 100K
 local next_score_milestone = 100000
@@ -924,7 +929,7 @@ local function detect_variation_dk3()
     local diff = diff_map[math.floor(dip_value / 64)]
 
     return string.format(
-      "Custom: %s Lives, %s Bonus, %s Extra, Diff %s (0x%02X)",
+      "Custom: %s Starting Lives, %s Bonus Life, %s Additional Bonus, Difficulty %s (0x%02X)",
       lives,
       bonus,
       extra,
@@ -1838,9 +1843,9 @@ local function export_json()
 
   if GAME_TYPE ~= "dkong3" then
     table.insert(timing_pairs, { "speedrun_start_frame", speedrun_start_frame })
-    table.insert(timing_pairs, { "start_phase_clear_frame", speedrun_end_frame })
-    table.insert(timing_pairs, { "start_phase_end_frame", start_phase_end_frame })
-    table.insert(timing_pairs, { "killscreen_frame", killscreen_frame })
+    table.insert(timing_pairs, { "speedrun_start_end_frame", speedrun_end_frame })
+    table.insert(timing_pairs, { "standard_start_end_frame", start_phase_end_frame })
+    table.insert(timing_pairs, { "speedrun_killscreen_frame", killscreen_frame })
   end
 
   table.insert(timing_pairs, { "end_game_frame", end_frame })
@@ -1882,15 +1887,15 @@ local function export_json()
   -- Playing time (standard total: start button to game over VRAM, fallback to end_frame)
   if start_frame and game_over_vram_frame then
     local dur = game_over_vram_frame - start_frame
-    table.insert(timing_pairs, { "playing_time_frames", dur })
-    table.insert(timing_pairs, { "playing_time", format_duration(dur) })
+    table.insert(timing_pairs, { "full_game_frames", dur })
+    table.insert(timing_pairs, { "full_game_time", format_duration(dur) })
   elseif start_frame and end_frame then
     local dur = end_frame - start_frame
-    table.insert(timing_pairs, { "playing_time_frames", dur })
-    table.insert(timing_pairs, { "playing_time", format_duration(dur) })
+    table.insert(timing_pairs, { "full_game_frames", dur })
+    table.insert(timing_pairs, { "full_game_time", format_duration(dur) })
   else
-    table.insert(timing_pairs, { "playing_time_frames", nil })
-    table.insert(timing_pairs, { "playing_time", nil })
+    table.insert(timing_pairs, { "full_game_frames", nil })
+    table.insert(timing_pairs, { "full_game_time", nil })
   end
 
   -- DK3 milestone timing
@@ -2150,7 +2155,7 @@ local function export_text()
 
       if game_variation and not game_variation:match("5 Lives") then
         file:write(
-          string.format("Recorded Lives (starting + earned): %d\n", life_stats.total_lives)
+          string.format("Recorded Lives: %d\n", life_stats.total_lives)
         )
       end
 
@@ -3009,6 +3014,20 @@ end
 local function on_frame_platformer()
   frame_count = read_frame_number()
 
+  -- Detect INP playback end (prevents phantom events after recording ends)
+  if
+    inp_playback_active
+    and not inp_playback_ended
+    and mame_options.entries["playback"]:value() == ""
+  then
+    inp_playback_ended = true
+    inp_end_frame = frame_count
+    return
+  end
+  if inp_playback_ended then
+    return
+  end
+
   local config = get_config()
 
   -- Read current state (don't read score every frame, only when needed)
@@ -3372,6 +3391,20 @@ end
 local function on_frame_dkong3()
   frame_count = read_frame_number()
 
+  -- Detect INP playback end (prevents phantom events after recording ends)
+  if
+    inp_playback_active
+    and not inp_playback_ended
+    and mame_options.entries["playback"]:value() == ""
+  then
+    inp_playback_ended = true
+    inp_end_frame = frame_count
+    return
+  end
+  if inp_playback_ended then
+    return
+  end
+
   local config = get_config()
   local game_mode = read_byte(config.addresses.game_mode)
   local dead_status = read_byte(config.addresses.dead)
@@ -3684,6 +3717,11 @@ end
 
 print("Tracking gameplay...\n")
 
+-- Detect INP playback mode (guards against false INP-end detection on live play)
+if mame_options.entries["playback"]:value() ~= "" then
+  inp_playback_active = true
+end
+
 -- Wrap on_frame in error protection for MAME 0.254+
 local function protected_on_frame()
   local ok, err = pcall(on_frame)
@@ -3779,8 +3817,13 @@ register_stop_callback(function()
     local current_score = read_score_with_rollover_check()
 
     -- Capture end frame for duration calculation
+    -- Use INP end frame if playback ended before manual exit
     if not end_frame then
-      end_frame = frame_count - 1
+      if inp_end_frame then
+        end_frame = inp_end_frame - 1
+      else
+        end_frame = frame_count - 1
+      end
     end
 
     if GAME_TYPE == "dkong3" then

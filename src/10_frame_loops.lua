@@ -4,6 +4,20 @@
 local function on_frame_platformer()
   frame_count = read_frame_number()
 
+  -- Detect INP playback end (prevents phantom events after recording ends)
+  if
+    inp_playback_active
+    and not inp_playback_ended
+    and mame_options.entries["playback"]:value() == ""
+  then
+    inp_playback_ended = true
+    inp_end_frame = frame_count
+    return
+  end
+  if inp_playback_ended then
+    return
+  end
+
   local config = get_config()
 
   -- Read current state (don't read score every frame, only when needed)
@@ -366,6 +380,20 @@ end
 -- ============================================================================
 local function on_frame_dkong3()
   frame_count = read_frame_number()
+
+  -- Detect INP playback end (prevents phantom events after recording ends)
+  if
+    inp_playback_active
+    and not inp_playback_ended
+    and mame_options.entries["playback"]:value() == ""
+  then
+    inp_playback_ended = true
+    inp_end_frame = frame_count
+    return
+  end
+  if inp_playback_ended then
+    return
+  end
 
   local config = get_config()
   local game_mode = read_byte(config.addresses.game_mode)

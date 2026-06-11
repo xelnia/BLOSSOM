@@ -47,7 +47,7 @@ local function detect_variation_dk3()
     local diff = diff_map[math.floor(dip_value / 64)]
 
     return string.format(
-      "Custom: %s Lives, %s Bonus, %s Extra, Diff %s (0x%02X)",
+      "Custom: %s Starting Lives, %s Bonus Life, %s Additional Bonus, Difficulty %s (0x%02X)",
       lives,
       bonus,
       extra,

@@ -379,9 +379,9 @@ local function export_json()
 
   if GAME_TYPE ~= "dkong3" then
     table.insert(timing_pairs, { "speedrun_start_frame", speedrun_start_frame })
-    table.insert(timing_pairs, { "start_phase_clear_frame", speedrun_end_frame })
-    table.insert(timing_pairs, { "start_phase_end_frame", start_phase_end_frame })
-    table.insert(timing_pairs, { "killscreen_frame", killscreen_frame })
+    table.insert(timing_pairs, { "speedrun_start_end_frame", speedrun_end_frame })
+    table.insert(timing_pairs, { "standard_start_end_frame", start_phase_end_frame })
+    table.insert(timing_pairs, { "speedrun_killscreen_frame", killscreen_frame })
   end
 
   table.insert(timing_pairs, { "end_game_frame", end_frame })
@@ -423,15 +423,15 @@ local function export_json()
   -- Playing time (standard total: start button to game over VRAM, fallback to end_frame)
   if start_frame and game_over_vram_frame then
     local dur = game_over_vram_frame - start_frame
-    table.insert(timing_pairs, { "playing_time_frames", dur })
-    table.insert(timing_pairs, { "playing_time", format_duration(dur) })
+    table.insert(timing_pairs, { "full_game_frames", dur })
+    table.insert(timing_pairs, { "full_game_time", format_duration(dur) })
   elseif start_frame and end_frame then
     local dur = end_frame - start_frame
-    table.insert(timing_pairs, { "playing_time_frames", dur })
-    table.insert(timing_pairs, { "playing_time", format_duration(dur) })
+    table.insert(timing_pairs, { "full_game_frames", dur })
+    table.insert(timing_pairs, { "full_game_time", format_duration(dur) })
   else
-    table.insert(timing_pairs, { "playing_time_frames", nil })
-    table.insert(timing_pairs, { "playing_time", nil })
+    table.insert(timing_pairs, { "full_game_frames", nil })
+    table.insert(timing_pairs, { "full_game_time", nil })
   end
 
   -- DK3 milestone timing
@@ -691,7 +691,7 @@ local function export_text()
 
       if game_variation and not game_variation:match("5 Lives") then
         file:write(
-          string.format("Recorded Lives (starting + earned): %d\n", life_stats.total_lives)
+          string.format("Recorded Lives: %d\n", life_stats.total_lives)
         )
       end
 

@@ -21,6 +21,11 @@ end
 
 print("Tracking gameplay...\n")
 
+-- Detect INP playback mode (guards against false INP-end detection on live play)
+if mame_options.entries["playback"]:value() ~= "" then
+  inp_playback_active = true
+end
+
 -- Wrap on_frame in error protection for MAME 0.254+
 local function protected_on_frame()
   local ok, err = pcall(on_frame)
@@ -116,8 +121,13 @@ register_stop_callback(function()
     local current_score = read_score_with_rollover_check()
 
     -- Capture end frame for duration calculation
+    -- Use INP end frame if playback ended before manual exit
     if not end_frame then
-      end_frame = frame_count - 1
+      if inp_end_frame then
+        end_frame = inp_end_frame - 1
+      else
+        end_frame = frame_count - 1
+      end
     end
 
     if GAME_TYPE == "dkong3" then

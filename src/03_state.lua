@@ -103,6 +103,11 @@ local end_frame = nil -- Frame number when gameplay ended
 local prev_start_state = false -- Previous frame's start button state (for edge detection)
 local prev_coin_state = false -- Previous frame's coin button state (for edge detection)
 
+-- INP playback end detection
+local inp_playback_active = false -- Set true at startup if INP playback detected
+local inp_playback_ended = false -- Set true when INP playback option goes empty
+local inp_end_frame = nil -- Frame number when INP end was detected
+
 -- Score milestones (all games)
 local score_milestones = {} -- {score, frame} entries at every 100K
 local next_score_milestone = 100000

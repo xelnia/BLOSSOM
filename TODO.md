@@ -14,10 +14,10 @@
 ## DK3 game mode / death status research
 Deeper investigation into whether DK3's death detection can use a pattern
 closer to the platformer games. All four games have game modes and a "dead"
-flag — the current split (platformer uses game_mode dead value, DK3 uses
+flag - the current split (platformer uses game_mode dead value, DK3 uses
 separate dead_status address) may be a consequence of initial implementation
 rather than a hard requirement. Research tasks:
-- Compare Z80 death handling routines across all four games
+- Compare death handling routines across all four games
 - Determine if DK3 has a game_mode dead value that was overlooked
 - Determine if platformers have a separate dead flag that could unify detection
 - Goal: evaluate whether the two frame loops could share a common death
