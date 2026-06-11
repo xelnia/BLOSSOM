@@ -755,9 +755,17 @@ local function export_text()
     end
 
     -- TIMING SUMMARY
-    file:write("\nTIMING SUMMARY\n")
-
     local playing_frames = get_playing_time_frames()
+    local has_dk3_timing = playing_frames
+      or #dk3_max_diff_milestones > 0
+      or #dk3_rbs_milestones > 0
+      or #dk3_loop_milestones > 0
+      or (start_frame and (game_over_vram_frame or end_frame))
+
+    if has_dk3_timing then
+      file:write("\nTIMING SUMMARY\n")
+    end
+
     if playing_frames then
       file:write(string.format("Unofficial Playing Time: %s\n", format_duration(playing_frames)))
     end
@@ -1004,10 +1012,18 @@ local function export_text()
     end
 
     -- TIMING SUMMARY
-    file:write("\nTIMING SUMMARY\n")
+    local playing_frames = get_playing_time_frames()
+    local has_plat_timing = playing_frames
+      or (speedrun_start_frame and speedrun_end_frame)
+      or (start_frame and start_phase_end_frame)
+      or (speedrun_start_frame and killscreen_frame)
+      or (start_frame and (game_over_vram_frame or end_frame))
+
+    if has_plat_timing then
+      file:write("\nTIMING SUMMARY\n")
+    end
 
     -- Unofficial times (guaranteed: playing time; conditional: start, killscreen)
-    local playing_frames = get_playing_time_frames()
     if playing_frames then
       file:write(string.format("Unofficial Playing Time: %s\n", format_duration(playing_frames)))
     end
@@ -1028,7 +1044,9 @@ local function export_text()
     end
 
     -- Frame ranges
-    file:write("\n")
+    if has_plat_timing then
+      file:write("\n")
+    end
 
     if start_frame and (game_over_vram_frame or end_frame) then
       local end_f = game_over_vram_frame or end_frame

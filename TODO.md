@@ -11,6 +11,26 @@
 - Scrap this whole thing for an external OCR version Kappa. Test with Tesseract OCR engine obs-ocr plugin
 - Dynamically check final stats against DKF+ISLR+Any active scoreboard (snapshot) for record/rank discovery & notification
 
+## DK3 game mode / death status research
+Deeper investigation into whether DK3's death detection can use a pattern
+closer to the platformer games. All four games have game modes and a "dead"
+flag — the current split (platformer uses game_mode dead value, DK3 uses
+separate dead_status address) may be a consequence of initial implementation
+rather than a hard requirement. Research tasks:
+- Compare Z80 death handling routines across all four games
+- Determine if DK3 has a game_mode dead value that was overlooked
+- Determine if platformers have a separate dead flag that could unify detection
+- Goal: evaluate whether the two frame loops could share a common death
+  detection and settlement pattern, reducing duplication
+
+## v2.1.0: Per-score-change frame tracking
+Record the frame number every time the score changes. Enables deep timing
+analysis: 5-minute scoring rates, 1-hour scores, scoring velocity curves,
+time-between-points distributions. Implementation: single score read at
+top of frame loop with change detection, score_changes array in state,
+new section in JSON output. Medium refactor - consolidates multiple
+read_score_with_rollover_check() calls per frame into one shared local.
+
 ## Finished / Deferred
 - Add support for DK3
 - API research on pre-0.175 to see if we can go further back (we're stuck with 0.175+)

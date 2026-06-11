@@ -13,6 +13,7 @@ local function on_frame_platformer()
   local lives = read_byte(config.addresses.lives)
 
   -- DEATH SCORE SETTLEMENT: Record deferred death when leaving DEAD mode
+  -- Mirrors DK3 settlement at on_frame_dkong3() and stop callback in 11_init.lua
   -- Score may update 1+ frames after mode changes to DEAD, so we wait
   -- for the score to settle before recording the death entry
   if death_pending and prev_game_mode == config.modes.dead and game_mode ~= config.modes.dead then
@@ -39,6 +40,10 @@ local function on_frame_platformer()
     stage_start_score = current_score
     prev_score = current_score
     death_pending = false
+    death_pending_screen_type = 0
+    death_pending_level = 0
+    death_pending_position = 0
+    death_pending_bonus = 0
   end
 
   -- GAMEPLAY DURATION TRACKING (runs only until gameplay confirmed)
@@ -260,7 +265,7 @@ local function on_frame_platformer()
   if game_mode == config.modes.transition and stage_completed_mode ~= nil then
     local current_score = read_score_with_rollover_check()
     local score_earned = current_score - stage_start_score
-    local current_position = level_position[completed_level]
+    local current_position = level_position[completed_level] or 1
 
     record_stage(
       completed_screen_type,
@@ -321,15 +326,17 @@ local function on_frame_platformer()
       local vram_tile = read_byte(config.addresses.game_over_vram)
       if vram_tile == 0x17 then
         game_over_vram_frame = frame_count
-        local go_dur = game_over_vram_frame - start_frame
-        print(
-          string.format(
-            "  [Timing] Standard Game End: Frame %s (%s frames - %s)",
-            format_number(game_over_vram_frame),
-            format_number(go_dur),
-            format_duration(go_dur)
+        if start_frame then
+          local go_dur = game_over_vram_frame - start_frame
+          print(
+            string.format(
+              "  [Timing] Standard Game End: Frame %s (%s frames - %s)",
+              format_number(game_over_vram_frame),
+              format_number(go_dur),
+              format_duration(go_dur)
+            )
           )
-        )
+        end
       end
     end
 
@@ -368,6 +375,7 @@ local function on_frame_dkong3()
   local lives = read_byte(config.addresses.lives)
 
   -- DK3 DEATH SCORE SETTLEMENT: Record deferred death when score settles
+  -- Mirrors platformer settlement at on_frame_platformer() and stop callback in 11_init.lua
   if dk3_death_pending then
     local settle_now = false
 
@@ -430,6 +438,11 @@ local function on_frame_dkong3()
       stage_start_score = current_score
       prev_score = current_score
       dk3_death_pending = false
+      dk3_death_pending_screen_type = 0
+      dk3_death_pending_level = 0
+      dk3_death_pending_lives_at_death = 0
+      dk3_death_pending_bonus = 0
+      dk3_death_pending_start_score = 0
     end
   end
 
@@ -603,15 +616,17 @@ local function on_frame_dkong3()
       local vram_tile = read_byte(config.addresses.game_over_vram)
       if vram_tile == 0x17 then
         game_over_vram_frame = frame_count
-        local go_dur = game_over_vram_frame - start_frame
-        print(
-          string.format(
-            "  [Timing] Standard Game End: Frame %s (%s frames - %s)",
-            format_number(game_over_vram_frame),
-            format_number(go_dur),
-            format_duration(go_dur)
+        if start_frame then
+          local go_dur = game_over_vram_frame - start_frame
+          print(
+            string.format(
+              "  [Timing] Standard Game End: Frame %s (%s frames - %s)",
+              format_number(game_over_vram_frame),
+              format_number(go_dur),
+              format_duration(go_dur)
+            )
           )
-        )
+        end
       end
     end
 

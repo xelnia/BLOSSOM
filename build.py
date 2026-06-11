@@ -27,6 +27,11 @@ def get_source_files():
 
 def build(source_files):
     """Concatenate source files into a single string."""
+     # Validate source files are LF-only
+    for f in source_files:
+        with open(f, "rb") as fh:
+            if b"\r\n" in fh.read():
+                raise SystemExit(f"CRLF found in {f} - commit with LF line endings")
     parts = []
     for f in source_files:
         with open(f, "r", encoding="utf-8", newline="") as src:

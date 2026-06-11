@@ -33,6 +33,7 @@ register_frame_callback(protected_on_frame)
 
 register_stop_callback(function()
   -- Settle any pending death before processing session end
+  -- Platformer: mirrors frame loop settlement in on_frame_platformer() in 10_frame_loops.lua ~line 15
   if death_pending then
     local current_score = read_score_with_rollover_check()
     death_count = death_count + 1
@@ -57,8 +58,13 @@ register_stop_callback(function()
     stage_start_score = current_score
     prev_score = current_score
     death_pending = false
+    death_pending_screen_type = 0
+    death_pending_level = 0
+    death_pending_position = 0
+    death_pending_bonus = 0
   end
 
+  -- DK3: mirrors frame loop settlement in on_frame_dkong3() in 10_frame_loops.lua ~line 373
   if dk3_death_pending then
     local current_score = read_score_with_rollover_check()
     death_count = death_count + 1
@@ -98,6 +104,11 @@ register_stop_callback(function()
     stage_start_score = current_score
     prev_score = current_score
     dk3_death_pending = false
+    dk3_death_pending_screen_type = 0
+    dk3_death_pending_level = 0
+    dk3_death_pending_lives_at_death = 0
+    dk3_death_pending_bonus = 0
+    dk3_death_pending_start_score = 0
   end
 
   -- Only process if game over hasn't been handled yet
