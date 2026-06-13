@@ -54,6 +54,7 @@ local GAME_CONFIGS = {
       bonus_timer_secondary = 0x6387, -- Secondary countdown after runout
       player_status = 0x6200, -- Player alive/dead status
       jump_status = 0x6214, -- Jump flag
+      game_active = 0x6005, -- High-level game state register
     },
 
     -- GAME MODES
@@ -95,6 +96,7 @@ local GAME_CONFIGS = {
     coin_button_bit = 7,
     input_active_high = true,
     coin_impulse = false,
+    game_active_playing = 0x03, -- $6005 value when in active gameplay
     -- BONUS TIMER FORMAT
     bonus_timer_bcd = false,
   },
@@ -127,6 +129,7 @@ local GAME_CONFIGS = {
       bonus_timer_secondary = 0x6387, -- Secondary countdown after runout
       player_status = 0x6200, -- Player alive/dead status
       jump_status = 0x6214, -- Jump flag
+      game_active = 0x6005,
     },
 
     -- GAME MODES
@@ -169,6 +172,7 @@ local GAME_CONFIGS = {
     coin_button_bit = 7,
     input_active_high = true,
     coin_impulse = false,
+    game_active_playing = 0x03,
     -- BONUS TIMER FORMAT
     bonus_timer_bcd = false,
   },
@@ -202,6 +206,7 @@ local GAME_CONFIGS = {
       bonus_timer_secondary = 0x6387, -- Secondary countdown after runout
       player_status = 0x6200, -- Player alive/dead status
       jump_status = 0x6214, -- Jump flag
+      game_active = 0x6005,
     },
 
     -- GAME MODES
@@ -243,6 +248,7 @@ local GAME_CONFIGS = {
     coin_button_bit = 0,
     input_active_high = false, -- ACTIVE LOW!
     coin_impulse = false,
+    game_active_playing = 0x03,
     -- BONUS TIMER FORMAT
     bonus_timer_bcd = false,
   },
@@ -271,6 +277,7 @@ local GAME_CONFIGS = {
       player_x = 0x6107,
       player_y = 0x6109,
       game_over_vram = 0x7629, -- VRAM tile for "G" in GAME OVER
+      game_active = 0x6005,
     },
 
     -- GAME MODES
@@ -315,6 +322,7 @@ local GAME_CONFIGS = {
     coin_button_bit = 5, -- Same bit, different addresses
     input_active_high = true,
     coin_impulse = true, -- Only lasts 1 frame!
+    game_active_playing = 0x01,
     -- BONUS TIMER FORMAT
     bonus_timer_bcd = true,
   },

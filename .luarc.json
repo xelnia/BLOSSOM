@@ -29,7 +29,11 @@
     "game_variation",
     "inp_playback_active",
     "inp_playback_ended",
+    "start_frame_offset",
     "inp_end_frame",
+    "session_count",
+    "session_banner_pending",
+    "session_pending_timing_msg",
 
     "EXPORT_CSV",
     "EXPORT_JSON",

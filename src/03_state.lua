@@ -15,6 +15,9 @@ local inp_playback_active = false -- Set true at startup if INP playback detecte
 local inp_playback_ended = false -- Set true when INP playback option goes empty
 local inp_end_frame = nil -- Frame number when INP end was detected
 
+-- Multi-session tracking — not reset between sessions
+local session_count = 1
+
 -- ============================================================================
 -- PER-SESSION STATE — reset between sessions via reset_session_state()
 -- ============================================================================
@@ -112,13 +115,14 @@ local function create_session_state()
     dk3_death_pending_start_score = 0,
 
     -- Gameplay duration tracking
-    start_button_pressed = false, -- Edge detected: start button was pressed
-    coin_inserted = false, -- Edge detected: coin was inserted
+    -- start_button_pressed = false, -- Edge detected: start button was pressed
+    -- coin_inserted = false, -- Edge detected: coin was inserted
     gameplay_started = false, -- Confirmed: actual gameplay has begun
     start_frame = nil, -- Frame number when gameplay started
+    pending_start_frame = nil,
     end_frame = nil, -- Frame number when gameplay ended
     prev_start_state = false, -- Previous frame's start button state (for edge detection)
-    prev_coin_state = false, -- Previous frame's coin button state (for edge detection)
+    -- prev_coin_state = false, -- Previous frame's coin button state (for edge detection)
 
     -- Recorded Lives tracking (all games)
     starting_lives = nil, -- Lives count at first gameplay frame

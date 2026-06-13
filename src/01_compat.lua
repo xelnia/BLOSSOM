@@ -117,6 +117,14 @@ local function register_stop_callback(callback)
   end
 end
 
+-- Frame callback timing offset for edge-detected signals.
+-- add_machine_frame_notifier (0.254+) fires 1 frame earlier in the cycle
+-- than register_frame_done (0.175-0.253) relative to the input viewer.
+local start_frame_offset = 0
+if emu.add_machine_frame_notifier then
+  start_frame_offset = 1
+end
+
 -- Detect and log MAME version for debugging
 local function detect_mame_version()
   if emu.app_version then

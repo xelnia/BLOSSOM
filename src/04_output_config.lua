@@ -2,6 +2,27 @@
 -- OUTPUT CONFIGURATIONS
 -- ============================================================================
 
+-- Cache INP base name and timestamp at startup (before playback option might clear)
+local inp_base_name = nil
+local inp_timestamp = nil
+
+local function cache_inp_info()
+  local playback_file = mame_options.entries["playback"]:value()
+  if playback_file and playback_file ~= "" then
+    local base = playback_file:match("(.+)%.inp$") or playback_file
+    inp_base_name = base:match("^.+[/\\](.+)$") or base
+    inp_timestamp = os.date("%Y%m%d_%H%M%S")
+  end
+end
+
+cache_inp_info()
+
+if not inp_base_name then
+  error(
+    "ERROR: No playback file detected. This script requires MAME to be run with -playback option"
+  )
+end
+
 -- Get INP filename for display (strips path if present)
 local function get_inp_filename()
   local playback_file = mame_options.entries["playback"]:value()
@@ -9,32 +30,6 @@ local function get_inp_filename()
     return playback_file:match("^.+[/\\](.+)$") or playback_file
   end
   return "unknown"
-end
-
--- Try to get INP filename from playback option
-local function get_output_filenames()
-  local playback_file = mame_options.entries["playback"]:value()
-
-  if playback_file and playback_file ~= "" then
-    local base_name = playback_file:match("(.+)%.inp$") or playback_file
-    base_name = base_name:match("^.+[/\\](.+)$") or base_name
-
-    -- Add timestamp to prevent file collisions
-    local timestamp = os.date("%Y%m%d_%H%M%S")
-    local filename_base = base_name .. "_" .. timestamp .. "_scores"
-
-    return filename_base .. ".csv", filename_base .. ".json", filename_base .. ".txt"
-  else
-    return nil, nil, nil
-  end
-end
-
-local CSV_FILE, JSON_FILE, TEXT_FILE = get_output_filenames()
-
-if not CSV_FILE then
-  error(
-    "ERROR: No playback file detected. This script requires MAME to be run with -playback option"
-  )
 end
 
 -- Create blossom_logs directory
@@ -45,7 +40,16 @@ end
 
 create_output_directory()
 
--- Prepend directory to output files
-CSV_FILE = "blossom_logs/" .. CSV_FILE
-JSON_FILE = "blossom_logs/" .. JSON_FILE
-TEXT_FILE = "blossom_logs/" .. TEXT_FILE
+-- Generate output filenames for a given session number (includes directory prefix)
+local function get_output_filenames(session_num)
+  local session_suffix = string.format("_session_%03d", session_num)
+  local filename_base = "blossom_logs/"
+    .. inp_base_name
+    .. "_"
+    .. inp_timestamp
+    .. session_suffix
+    .. "_scores"
+  return filename_base .. ".csv", filename_base .. ".json", filename_base .. ".txt"
+end
+
+local CSV_FILE, JSON_FILE, TEXT_FILE = get_output_filenames(1)

@@ -61,44 +61,43 @@ local function on_frame_platformer()
     s.death_pending_bonus = 0
   end
 
-  -- GAMEPLAY DURATION TRACKING (runs only until gameplay confirmed)
-  if not s.gameplay_started then
-    local config = get_config()
-
-    -- Read button states from same address (dkong, dkongjr, ckongpt2)
-    local current_coin_state = check_button_pressed(
-      config.addresses.input_start_coin,
-      config.coin_button_bit,
-      config.input_active_high
-    )
-    local current_start_state = check_button_pressed(
-      config.addresses.input_start_coin,
-      config.start_button_bit,
-      config.input_active_high
-    )
-
-    -- Edge detection for coin insertion
-    if current_coin_state and not s.prev_coin_state then
-      s.coin_inserted = true
+  -- START BUTTON EDGE DETECTION: Capture frame-accurate press timing
+  -- Buffers the frame until $6005 confirms a valid game start
+  if not s.start_frame then
+    local raw = read_byte(config.addresses.input_start_coin)
+    local bit_val = (raw >> config.start_button_bit) & 1
+    local pressed
+    if config.input_active_high then
+      pressed = (bit_val == 1)
+    else
+      pressed = (bit_val == 0)
     end
+    if pressed and not s.prev_start_state then
+      s.pending_start_frame = frame_count + start_frame_offset
+    end
+    s.prev_start_state = pressed
+  end
 
-    -- Edge detection for start button press
-    if current_start_state and not s.prev_start_state then
-      s.start_button_pressed = true
-      if s.coin_inserted and not s.start_frame then
-        s.start_frame = frame_count - 1
-        print(string.format("  [Timing] Start button: Frame %s", format_number(s.start_frame)))
+  -- GAMEPLAY DETECTION: $6005 entering "playing" confirms credit + start sequence
+  -- Promotes buffered start frame; falls back to current frame for pre-banked credits
+  if not s.gameplay_started then
+    local game_active = read_byte(config.addresses.game_active)
+    if game_active == config.game_active_playing then
+      s.gameplay_started = true
+      if not s.start_frame then
+        if s.pending_start_frame then
+          s.start_frame = s.pending_start_frame
+        else
+          s.start_frame = frame_count + start_frame_offset
+        end
+        local msg = string.format("  [Timing] Start button: Frame %s", format_number(s.start_frame))
+        if session_banner_pending then
+          session_pending_timing_msg = msg
+        else
+          print(msg)
+        end
       end
     end
-
-    -- Confirm gameplay mode started (allows wrapper to stop checking buttons)
-    if s.coin_inserted and s.start_button_pressed and game_mode == config.modes.gameplay then
-      s.gameplay_started = true
-    end
-
-    -- Update previous states for next frame's edge detection
-    s.prev_coin_state = current_coin_state
-    s.prev_start_state = current_start_state
   end
 
   -- SCORE MILESTONE TRACKING
@@ -130,7 +129,7 @@ local function on_frame_platformer()
   end
 
   -- RECORDED LIVES TRACKING
-  if s.gameplay_started then
+  if s.gameplay_started and game_mode == config.modes.gameplay then
     local current_lives = read_byte(config.addresses.lives)
     if not s.starting_lives then
       s.starting_lives = current_lives
@@ -343,6 +342,29 @@ local function on_frame_platformer()
     finalize_session("GAME OVER")
   end
 
+  -- MULTI-SESSION DETECTION: After game over, watch for $6005 to leave "playing"
+  -- Reset prepares for a potential next game; $6005 detection handles the rest
+  if s.game_over_processed then
+    local game_active = read_byte(config.addresses.game_active)
+    if game_active ~= config.game_active_playing then
+      session_count = session_count + 1
+      CSV_FILE, JSON_FILE, TEXT_FILE = get_output_filenames(session_count)
+      reset_session_state()
+      session_banner_pending = true
+    end
+  end
+
+  -- Print deferred session banner once gameplay is confirmed
+  if session_banner_pending and s.gameplay_started then
+    print(string.format("\n=== SESSION %d ===\n", session_count))
+    print("Tracking gameplay...\n")
+    if session_pending_timing_msg then
+      print(session_pending_timing_msg)
+      session_pending_timing_msg = nil
+    end
+    session_banner_pending = false
+  end
+
   -- Update previous state
   s.prev_game_mode = game_mode
   s.prev_screen_type = screen_type
@@ -449,46 +471,43 @@ local function on_frame_dkong3()
     end
   end
 
-  -- GAMEPLAY DURATION TRACKING (runs only until gameplay confirmed)
-  if not s.gameplay_started then
-    local config = get_config()
-
-    -- Read button states from SEPARATE addresses (DK3 only!)
-    local current_coin_state = check_button_pressed(
-      config.addresses.input_coin, -- Different address for coin
-      config.coin_button_bit,
-      config.input_active_high
-    )
-    local current_start_state = check_button_pressed(
-      config.addresses.input_start, -- Different address for start
-      config.start_button_bit,
-      config.input_active_high
-    )
-
-    -- Edge detection for coin insertion (critical for PORT_IMPULSE!)
-    if current_coin_state and not s.prev_coin_state then
-      s.coin_inserted = true
+  -- START BUTTON EDGE DETECTION: Capture frame-accurate press timing
+  -- Buffers the frame until $6005 confirms a valid game start
+  if not s.start_frame then
+    local raw = read_byte(config.addresses.input_start)
+    local bit_val = (raw >> config.start_button_bit) & 1
+    local pressed
+    if config.input_active_high then
+      pressed = (bit_val == 1)
+    else
+      pressed = (bit_val == 0)
     end
+    if pressed and not s.prev_start_state then
+      s.pending_start_frame = frame_count + start_frame_offset
+    end
+    s.prev_start_state = pressed
+  end
 
-    -- Edge detection for start button press
-    if current_start_state and not s.prev_start_state then
-      s.start_button_pressed = true
-      -- Capture start frame immediately if coin already inserted
-      -- Subtract 1 because frame_count was incremented before we detected the press
-      if s.coin_inserted and not s.start_frame then
-        s.start_frame = frame_count - 1
-        print(string.format("  [Timing] Start button: Frame %s", format_number(s.start_frame)))
+  -- GAMEPLAY DETECTION: $6005 entering "playing" confirms credit + start sequence
+  -- Promotes buffered start frame; falls back to current frame for pre-banked credits
+  if not s.gameplay_started then
+    local game_active = read_byte(config.addresses.game_active)
+    if game_active == config.game_active_playing then
+      s.gameplay_started = true
+      if not s.start_frame then
+        if s.pending_start_frame then
+          s.start_frame = s.pending_start_frame
+        else
+          s.start_frame = frame_count + start_frame_offset
+        end
+        local msg = string.format("  [Timing] Start button: Frame %s", format_number(s.start_frame))
+        if session_banner_pending then
+          session_pending_timing_msg = msg
+        else
+          print(msg)
+        end
       end
     end
-
-    -- Confirm gameplay mode started (allows wrapper to stop checking buttons)
-    if s.coin_inserted and s.start_button_pressed and game_mode == config.modes.gameplay then
-      s.gameplay_started = true
-    end
-
-    -- Update previous states for next frame's edge detection
-    s.prev_coin_state = current_coin_state
-    s.prev_start_state = current_start_state
   end
 
   -- SCORE MILESTONE TRACKING
@@ -520,7 +539,7 @@ local function on_frame_dkong3()
   end
 
   -- RECORDED LIVES TRACKING
-  if s.gameplay_started then
+  if s.gameplay_started and game_mode == config.modes.gameplay then
     local current_lives = read_byte(config.addresses.lives)
     if not s.starting_lives then
       s.starting_lives = current_lives
@@ -619,6 +638,29 @@ local function on_frame_dkong3()
     and not s.game_over_processed
   then
     finalize_session("GAME OVER")
+  end
+
+  -- MULTI-SESSION DETECTION: After game over, watch for $6005 to leave "playing"
+  -- Reset prepares for a potential next game; $6005 detection handles the rest
+  if s.game_over_processed then
+    local game_active = read_byte(config.addresses.game_active)
+    if game_active ~= config.game_active_playing then
+      session_count = session_count + 1
+      CSV_FILE, JSON_FILE, TEXT_FILE = get_output_filenames(session_count)
+      reset_session_state()
+      session_banner_pending = true
+    end
+  end
+
+  -- Print deferred session banner once gameplay is confirmed
+  if session_banner_pending and s.gameplay_started then
+    print(string.format("\n=== SESSION %d ===\n", session_count))
+    print("Tracking gameplay...\n")
+    if session_pending_timing_msg then
+      print(session_pending_timing_msg)
+      session_pending_timing_msg = nil
+    end
+    session_banner_pending = false
   end
 
   -- Update previous state
