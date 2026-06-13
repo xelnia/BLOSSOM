@@ -1,0 +1,87 @@
+{
+  "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+
+  "Lua.runtime.version": "Lua 5.3",
+  "Lua.workspace.checkThirdParty": false,
+
+  "Lua.diagnostics.globals": [
+    "emu",
+    "manager",
+
+    "mame_machine",
+    "mame_options",
+    "mame_devices",
+    "read_frame_number",
+    "read_bonus_timer",
+    "register_frame_callback",
+    "register_stop_callback",
+    "detect_mame_version",
+    "BLOSSOM_VERSION",
+
+    "detect_game",
+    "GAME_TYPE",
+    "GAME_CONFIGS",
+
+    "s",
+    "create_session_state",
+    "reset_session_state",
+    "frame_count",
+    "game_variation",
+    "inp_playback_active",
+    "inp_playback_ended",
+    "inp_end_frame",
+
+    "EXPORT_CSV",
+    "EXPORT_JSON",
+    "EXPORT_TEXT",
+    "CSV_FILE",
+    "JSON_FILE",
+    "TEXT_FILE",
+    "get_inp_filename",
+    "get_output_filenames",
+    "create_output_directory",
+
+    "get_config",
+    "get_screen_type_name",
+    "read_byte",
+    "read_score",
+    "get_adjusted_score",
+    "read_score_with_rollover_check",
+    "check_button_pressed",
+    "format_duration",
+    "format_number",
+    "format_number_decimal",
+    "format_level_for_display",
+    "get_stage_name",
+    "calculate_pace",
+    "calculate_22_4_pace",
+    "get_board_name_dk3",
+    "detect_variation_dk3",
+
+    "record_board_dk3",
+    "record_stage",
+    "record_level_total",
+    "find_best_worst",
+    "calculate_dk3_life_stats",
+
+    "export_csv",
+    "export_json",
+    "export_text",
+
+    "print_platformer_summary",
+    "print_dk3_summary",
+    "finalize_session",
+
+    "on_frame_platformer",
+    "on_frame_dkong3",
+    "on_frame",
+    "protected_on_frame"
+  ],
+
+  "Lua.diagnostics.disable": [
+    "unused-local",
+    "undefined-field"
+  ],
+
+  "Lua.format.enable": false
+}

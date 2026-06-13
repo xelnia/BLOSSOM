@@ -59,7 +59,7 @@ end
 
 -- Get adjusted score accounting for million-point rollovers
 local function get_adjusted_score(raw_score)
-  return raw_score + score_offset
+  return raw_score + s.score_offset
 end
 
 -- Read and check for rollover - call this instead of read_score when logging data
@@ -68,11 +68,11 @@ local function read_score_with_rollover_check()
 
   -- Detect score rollover from 999900 to 000000 (million+ points)
   -- Compare raw scores to detect the transition, not adjusted scores
-  if prev_raw_score > 900000 and raw_score < 100000 then
-    score_offset = score_offset + 1000000
+  if s.prev_raw_score > 900000 and raw_score < 100000 then
+    s.score_offset = s.score_offset + 1000000
   end
 
-  prev_raw_score = raw_score
+  s.prev_raw_score = raw_score
   return get_adjusted_score(raw_score)
 end
 
@@ -175,7 +175,7 @@ end
 -- PACE HELPERS
 -- Calculate base pace for each game
 local function calculate_pace(lives_remaining)
-  if not can_calculate_pace then
+  if not s.can_calculate_pace then
     return nil
   end
 
@@ -183,7 +183,7 @@ local function calculate_pace(lives_remaining)
 
   -- Check if we have all required screen type averages
   for i = 1, 4 do
-    if screen_count[i] == 0 then
+    if s.screen_count[i] == 0 then
       return nil
     end
   end
@@ -191,15 +191,15 @@ local function calculate_pace(lives_remaining)
   -- Calculate averages for each screen type
   local screen_avg = {}
   for i = 1, 4 do
-    screen_avg[i] = screen_sum[i] / screen_count[i]
+    screen_avg[i] = s.screen_sum[i] / s.screen_count[i]
   end
 
   -- Calculate estimated death points
   local estimated_death_points
-  if death_count == 0 then
+  if s.death_count == 0 then
     estimated_death_points = lives_remaining * config.death_point_value
   else
-    estimated_death_points = total_death_points + (lives_remaining * config.death_point_value)
+    estimated_death_points = s.total_death_points + (lives_remaining * config.death_point_value)
   end
 
   -- Now calculate pace
@@ -211,16 +211,16 @@ local function calculate_pace(lives_remaining)
   --   CK:    start + ((barrel_avg + pie_avg + spring_avg + rivet_avg) * 17) + deaths
 
   if GAME_TYPE == "dkong" then
-    pace = start_score_for_pace
+    pace = s.start_score_for_pace
       + (((screen_avg[1] * 3) + screen_avg[2] + screen_avg[3] + screen_avg[4]) * 17)
       + estimated_death_points
   elseif GAME_TYPE == "dkongjr" then
     -- Memory mapping: 1=Spring, 2=Jungle, 3=Chain, 4=Hideout
-    pace = start_score_for_pace
+    pace = s.start_score_for_pace
       + ((screen_avg[2] + screen_avg[1] + screen_avg[4] + screen_avg[3]) * 18)
       + estimated_death_points
   elseif GAME_TYPE == "ckongpt2" then
-    pace = start_score_for_pace
+    pace = s.start_score_for_pace
       + ((screen_avg[1] + screen_avg[2] + screen_avg[3] + screen_avg[4]) * 17)
       + estimated_death_points
   end

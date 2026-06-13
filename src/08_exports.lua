@@ -93,7 +93,7 @@ local function export_csv()
   end
 
   -- Write data (exclude level totals)
-  for _, stage in ipairs(stage_data) do
+  for _, stage in ipairs(s.stage_data) do
     if not stage.is_level_total then
       local screen_num_str = stage.screen_num == "" and "" or tostring(stage.screen_num)
       local death_num_str = stage.death_num and tostring(stage.death_num) or ""
@@ -163,21 +163,21 @@ local function export_json()
   local final_level_str = nil
   local final_stage_num = nil
   if GAME_TYPE == "dkong3" then
-    for i = #stage_data, 1, -1 do
-      local board_label = stage_data[i].board
+    for i = #s.stage_data, 1, -1 do
+      local board_label = s.stage_data[i].board
       if not board_label:match("%(") then
         final_level_str = "Board " .. board_label
       else
         final_level_str = board_label
       end
-      final_stage_num = stage_data[i].level
+      final_stage_num = s.stage_data[i].level
       break
     end
   else
-    for i = #stage_data, 1, -1 do
-      if not stage_data[i].is_level_total then
-        final_level_str = stage_data[i].stage
-        final_stage_num = stage_data[i].screen_num
+    for i = #s.stage_data, 1, -1 do
+      if not s.stage_data[i].is_level_total then
+        final_level_str = s.stage_data[i].stage
+        final_stage_num = s.stage_data[i].screen_num
         break
       end
     end
@@ -195,27 +195,27 @@ local function export_json()
 
   -- SCORING SUMMARY
   local scoring_pairs = {
-    { "final_score", prev_score },
+    { "final_score", s.prev_score },
     { "final_level", final_level_str },
     { "final_stage", final_stage_num },
-    { "recorded_lives", starting_lives and (starting_lives + earned_lives) or nil },
-    { "starting_lives", starting_lives },
-    { "earned_lives", earned_lives },
-    { "recorded_deaths", death_count },
-    { "total_death_points", total_death_points },
+    { "recorded_lives", s.starting_lives and (s.starting_lives + s.earned_lives) or nil },
+    { "starting_lives", s.starting_lives },
+    { "earned_lives", s.earned_lives },
+    { "recorded_deaths", s.death_count },
+    { "total_death_points", s.total_death_points },
   }
 
   if GAME_TYPE == "dkong3" then
     -- DK3 scoring summary
     -- Screen type averages (max difficulty only)
-    if dk3_max_diff_count > 0 then
+    if s.dk3_max_diff_count > 0 then
       local avg_pairs = {}
       for i = 0, 2 do
         local idx = i + 1
-        if dk3_screen_count[idx] > 0 then
+        if s.dk3_screen_count[idx] > 0 then
           table.insert(
             avg_pairs,
-            { config.screen_names[i]:lower(), dk3_screen_sum[idx] / dk3_screen_count[idx] }
+            { config.screen_names[i]:lower(), s.dk3_screen_sum[idx] / s.dk3_screen_count[idx] }
           )
         end
       end
@@ -226,7 +226,7 @@ local function export_json()
 
     -- RBS milestones (score data)
     local rbs_score_array = {}
-    for _, rbs in ipairs(dk3_rbs_milestones) do
+    for _, rbs in ipairs(s.dk3_rbs_milestones) do
       table.insert(
         rbs_score_array,
         json_ordered({
@@ -240,7 +240,7 @@ local function export_json()
 
     -- Loop milestones (score data)
     local loop_score_array = {}
-    for _, loop in ipairs(dk3_loop_milestones) do
+    for _, loop in ipairs(s.dk3_loop_milestones) do
       table.insert(
         loop_score_array,
         json_ordered({
@@ -294,7 +294,7 @@ local function export_json()
     end
   else
     -- Platformer scoring summary
-    table.insert(scoring_pairs, { "total_screens", current_screen_num })
+    table.insert(scoring_pairs, { "total_screens", s.current_screen_num })
 
     -- Pace
     local final_level = nil
@@ -305,21 +305,21 @@ local function export_json()
       end
     end
 
-    if final_level and last_pace then
+    if final_level and s.last_pace then
       if config.supports_22_4_pace then
-        table.insert(scoring_pairs, { "pace_22_1", last_pace })
-        table.insert(scoring_pairs, { "pace_22_4", last_pace_22_4 })
+        table.insert(scoring_pairs, { "pace_22_1", s.last_pace })
+        table.insert(scoring_pairs, { "pace_22_4", s.last_pace_22_4 })
       else
-        table.insert(scoring_pairs, { "pace", last_pace })
+        table.insert(scoring_pairs, { "pace", s.last_pace })
       end
     end
 
     -- Start score
-    if start_score_total > 0 then
-      table.insert(scoring_pairs, { "start_score_total", start_score_total })
-      table.insert(scoring_pairs, { "start_score_for_pace", start_score_for_pace })
-      table.insert(scoring_pairs, { "start_phase_deaths", start_phase_deaths })
-      table.insert(scoring_pairs, { "start_phase_death_points", start_phase_death_points })
+    if s.start_score_total > 0 then
+      table.insert(scoring_pairs, { "start_score_total", s.start_score_total })
+      table.insert(scoring_pairs, { "start_score_for_pace", s.start_score_for_pace })
+      table.insert(scoring_pairs, { "start_phase_deaths", s.start_phase_deaths })
+      table.insert(scoring_pairs, { "start_phase_death_points", s.start_phase_death_points })
     end
 
     -- Screen type averages
@@ -332,9 +332,9 @@ local function export_json()
 
     local screen_avg_pairs = {}
     for _, i in ipairs(display_order) do
-      if #screen_scores[i] > 0 then
-        local best_score, best_labels, worst_score, worst_labels = find_best_worst(screen_scores[i])
-        local avg = screen_sum[i] / screen_count[i]
+      if #s.screen_scores[i] > 0 then
+        local best_score, best_labels, worst_score, worst_labels = find_best_worst(s.screen_scores[i])
+        local avg = s.screen_sum[i] / s.screen_count[i]
         local type_name = get_screen_type_name(i):lower()
         table.insert(screen_avg_pairs, {
           type_name,
@@ -344,7 +344,7 @@ local function export_json()
             { "best_stages", best_labels },
             { "worst_score", worst_score },
             { "worst_stages", worst_labels },
-            { "count", screen_count[i] },
+            { "count", s.screen_count[i] },
           }),
         })
       end
@@ -354,9 +354,9 @@ local function export_json()
     end
 
     -- Level averages
-    if #level_scores > 0 then
-      local best_score, best_labels, worst_score, worst_labels = find_best_worst(level_scores)
-      local avg = level_sum / level_count
+    if #s.level_scores > 0 then
+      local best_score, best_labels, worst_score, worst_labels = find_best_worst(s.level_scores)
+      local avg = s.level_sum / s.level_count
       table.insert(scoring_pairs, {
         "level_averages",
         json_ordered({
@@ -365,7 +365,7 @@ local function export_json()
           { "best_levels", best_labels },
           { "worst_score", worst_score },
           { "worst_levels", worst_labels },
-          { "count", level_count },
+          { "count", s.level_count },
         }),
       })
     end
@@ -377,23 +377,23 @@ local function export_json()
   local timing_pairs = {}
 
   -- Raw frame markers
-  table.insert(timing_pairs, { "start_button_frame", start_frame })
+  table.insert(timing_pairs, { "start_button_frame", s.start_frame })
 
   if GAME_TYPE ~= "dkong3" then
-    table.insert(timing_pairs, { "speedrun_start_frame", speedrun_start_frame })
-    table.insert(timing_pairs, { "speedrun_start_end_frame", speedrun_end_frame })
-    table.insert(timing_pairs, { "standard_start_end_frame", start_phase_end_frame })
-    table.insert(timing_pairs, { "speedrun_killscreen_frame", killscreen_frame })
+    table.insert(timing_pairs, { "speedrun_start_frame", s.speedrun_start_frame })
+    table.insert(timing_pairs, { "speedrun_start_end_frame", s.speedrun_end_frame })
+    table.insert(timing_pairs, { "standard_start_end_frame", s.start_phase_end_frame })
+    table.insert(timing_pairs, { "speedrun_killscreen_frame", s.killscreen_frame })
   end
 
-  table.insert(timing_pairs, { "end_game_frame", end_frame })
-  table.insert(timing_pairs, { "game_over_vram_frame", game_over_vram_frame })
+  table.insert(timing_pairs, { "end_game_frame", s.end_frame })
+  table.insert(timing_pairs, { "game_over_vram_frame", s.game_over_vram_frame })
 
   -- Computed durations (platformer only)
   if GAME_TYPE ~= "dkong3" then
     -- Speedrun start duration
-    if speedrun_start_frame and speedrun_end_frame then
-      local dur = speedrun_end_frame - speedrun_start_frame
+    if s.speedrun_start_frame and s.speedrun_end_frame then
+      local dur = s.speedrun_end_frame - s.speedrun_start_frame
       table.insert(timing_pairs, { "speedrun_start_duration_frames", dur })
       table.insert(timing_pairs, { "speedrun_start_time", format_duration(dur) })
     else
@@ -402,8 +402,8 @@ local function export_json()
     end
 
     -- Standard start duration
-    if start_frame and start_phase_end_frame then
-      local dur = start_phase_end_frame - start_frame
+    if s.start_frame and s.start_phase_end_frame then
+      local dur = s.start_phase_end_frame - s.start_frame
       table.insert(timing_pairs, { "standard_start_duration_frames", dur })
       table.insert(timing_pairs, { "standard_start_time", format_duration(dur) })
     else
@@ -412,8 +412,8 @@ local function export_json()
     end
 
     -- Speedrun killscreen duration
-    if speedrun_start_frame and killscreen_frame then
-      local dur = killscreen_frame - speedrun_start_frame
+    if s.speedrun_start_frame and s.killscreen_frame then
+      local dur = s.killscreen_frame - s.speedrun_start_frame
       table.insert(timing_pairs, { "speedrun_killscreen_duration_frames", dur })
       table.insert(timing_pairs, { "speedrun_killscreen_time", format_duration(dur) })
     else
@@ -423,12 +423,12 @@ local function export_json()
   end
 
   -- Playing time (standard total: start button to game over VRAM, fallback to end_frame)
-  if start_frame and game_over_vram_frame then
-    local dur = game_over_vram_frame - start_frame
+  if s.start_frame and s.game_over_vram_frame then
+    local dur = s.game_over_vram_frame - s.start_frame
     table.insert(timing_pairs, { "full_game_frames", dur })
     table.insert(timing_pairs, { "full_game_time", format_duration(dur) })
-  elseif start_frame and end_frame then
-    local dur = end_frame - start_frame
+  elseif s.start_frame and s.end_frame then
+    local dur = s.end_frame - s.start_frame
     table.insert(timing_pairs, { "full_game_frames", dur })
     table.insert(timing_pairs, { "full_game_time", format_duration(dur) })
   else
@@ -439,10 +439,10 @@ local function export_json()
   -- DK3 milestone timing
   if GAME_TYPE == "dkong3" then
     local max_diff_timing = {}
-    for _, md in ipairs(dk3_max_diff_milestones) do
+    for _, md in ipairs(s.dk3_max_diff_milestones) do
       local time_from_start = nil
-      if start_frame then
-        time_from_start = format_duration(md.frame - start_frame)
+      if s.start_frame then
+        time_from_start = format_duration(md.frame - s.start_frame)
       end
       table.insert(
         max_diff_timing,
@@ -456,10 +456,10 @@ local function export_json()
     table.insert(timing_pairs, { "max_diff_milestones", max_diff_timing })
 
     local rbs_timing = {}
-    for _, rbs in ipairs(dk3_rbs_milestones) do
+    for _, rbs in ipairs(s.dk3_rbs_milestones) do
       local time_from_start = nil
-      if start_frame then
-        time_from_start = format_duration(rbs.frame - start_frame)
+      if s.start_frame then
+        time_from_start = format_duration(rbs.frame - s.start_frame)
       end
       table.insert(
         rbs_timing,
@@ -473,10 +473,10 @@ local function export_json()
     table.insert(timing_pairs, { "rbs_milestone_timing", rbs_timing })
 
     local loop_timing = {}
-    for _, loop in ipairs(dk3_loop_milestones) do
+    for _, loop in ipairs(s.dk3_loop_milestones) do
       local time_from_start = nil
-      if start_frame then
-        time_from_start = format_duration(loop.frame - start_frame)
+      if s.start_frame then
+        time_from_start = format_duration(loop.frame - s.start_frame)
       end
       table.insert(
         loop_timing,
@@ -494,11 +494,11 @@ local function export_json()
 
   -- SCORE MILESTONES (top-level)
   local milestones_array = {}
-  for _, ms in ipairs(score_milestones) do
+  for _, ms in ipairs(s.score_milestones) do
     local ms_pairs = {
       { "score", ms.score },
       { "frame", ms.frame },
-      { "time_from_start", start_frame and format_duration(ms.frame - start_frame) or nil },
+      { "time_from_start", s.start_frame and format_duration(ms.frame - s.start_frame) or nil },
     }
     if ms.stage then
       table.insert(ms_pairs, { "stage", ms.stage })
@@ -513,7 +513,7 @@ local function export_json()
 
   -- DEATHS (extracted from stage_data)
   local deaths_array = {}
-  for _, stage in ipairs(stage_data) do
+  for _, stage in ipairs(s.stage_data) do
     if stage.death then
       local death_pairs = {
         { "death_num", stage.death_num },
@@ -537,7 +537,7 @@ local function export_json()
 
   -- STAGES (completed stages only: no level totals, no deaths)
   local stages_array = {}
-  for _, stage in ipairs(stage_data) do
+  for _, stage in ipairs(s.stage_data) do
     if not stage.is_level_total and not stage.death then
       local stage_pairs = {}
       if GAME_TYPE == "dkong3" then
@@ -595,10 +595,10 @@ end
 
 -- Helper: compute playing time frames (start button to game over VRAM, fallback to end_frame)
 local function get_playing_time_frames()
-  if start_frame and game_over_vram_frame then
-    return game_over_vram_frame - start_frame
-  elseif start_frame and end_frame then
-    return end_frame - start_frame
+  if s.start_frame and s.game_over_vram_frame then
+    return s.game_over_vram_frame - s.start_frame
+  elseif s.start_frame and s.end_frame then
+    return s.end_frame - s.start_frame
   end
   return nil
 end
@@ -623,8 +623,8 @@ local function export_text()
     -- ============================================================================
     -- Find final board
     local final_board = ""
-    for i = #stage_data, 1, -1 do
-      final_board = stage_data[i].board
+    for i = #s.stage_data, 1, -1 do
+      final_board = s.stage_data[i].board
       break
     end
 
@@ -639,7 +639,7 @@ local function export_text()
 
     -- SCORING SUMMARY
     file:write("\nSCORING SUMMARY\n")
-    file:write(string.format("Final Score: %s\n", format_number(prev_score)))
+    file:write(string.format("Final Score: %s\n", format_number(s.prev_score)))
     if final_board ~= "" then
       file:write(string.format("Final Board: %s\n", final_board))
     end
@@ -657,7 +657,7 @@ local function export_text()
     end
 
     -- RBS milestones (score data)
-    for _, rbs in ipairs(dk3_rbs_milestones) do
+    for _, rbs in ipairs(s.dk3_rbs_milestones) do
       file:write(
         string.format(
           "RBS %d Score: %s (%s)\n",
@@ -669,7 +669,7 @@ local function export_text()
     end
 
     -- Loop milestones (score data)
-    for _, loop in ipairs(dk3_loop_milestones) do
+    for _, loop in ipairs(s.dk3_loop_milestones) do
       file:write(
         string.format(
           "Loop %d Score: %s (%s)\n",
@@ -681,15 +681,15 @@ local function export_text()
     end
 
     -- Screen type averages (max difficulty only)
-    if dk3_max_diff_count > 0 then
+    if s.dk3_max_diff_count > 0 then
       for i = 0, 2 do
         local idx = i + 1
-        if dk3_screen_count[idx] > 0 then
+        if s.dk3_screen_count[idx] > 0 then
           file:write(
             string.format(
               "Max Difficulty %s Average: %s\n",
               config.screen_names[i],
-              format_number_decimal(dk3_screen_sum[idx] / dk3_screen_count[idx])
+              format_number_decimal(s.dk3_screen_sum[idx] / s.dk3_screen_count[idx])
             )
           )
         end
@@ -758,16 +758,16 @@ local function export_text()
 
     -- Recorded Lives / Deaths / Death Points
     file:write("\n")
-    if starting_lives then
-      local total_lives = starting_lives + earned_lives
+    if s.starting_lives then
+      local total_lives = s.starting_lives + s.earned_lives
       if not game_variation or not game_variation:match("5 Lives") then
-        if earned_lives > 0 then
+        if s.earned_lives > 0 then
           file:write(
             string.format(
               "Recorded Lives (starting + bonus): %d (%d + %d)\n",
               total_lives,
-              starting_lives,
-              earned_lives
+              s.starting_lives,
+              s.earned_lives
             )
           )
         else
@@ -775,26 +775,26 @@ local function export_text()
         end
       end
     end
-    file:write(string.format("Recorded Deaths: %d\n", death_count))
-    file:write(string.format("Total Death Points: %s\n", format_number(total_death_points)))
+    file:write(string.format("Recorded Deaths: %d\n", s.death_count))
+    file:write(string.format("Total Death Points: %s\n", format_number(s.total_death_points)))
 
     -- TIMING SUMMARY
     local playing_frames = get_playing_time_frames()
     local has_dk3_timing = playing_frames
-      or #dk3_max_diff_milestones > 0
-      or #dk3_rbs_milestones > 0
-      or #dk3_loop_milestones > 0
-      or (start_frame and (game_over_vram_frame or end_frame))
+      or #s.dk3_max_diff_milestones > 0
+      or #s.dk3_rbs_milestones > 0
+      or #s.dk3_loop_milestones > 0
+      or (s.start_frame and (s.game_over_vram_frame or s.end_frame))
 
     if has_dk3_timing then
       file:write("\nTIMING SUMMARY\n")
     end
 
     -- DK3 milestone timing
-    for _, md in ipairs(dk3_max_diff_milestones) do
+    for _, md in ipairs(s.dk3_max_diff_milestones) do
       local time_str = ""
-      if start_frame then
-        time_str = string.format(" (%s)", format_duration(md.frame - start_frame))
+      if s.start_frame then
+        time_str = string.format(" (%s)", format_duration(md.frame - s.start_frame))
       end
       file:write(
         string.format(
@@ -806,20 +806,20 @@ local function export_text()
       )
     end
 
-    for _, rbs in ipairs(dk3_rbs_milestones) do
+    for _, rbs in ipairs(s.dk3_rbs_milestones) do
       local time_str = ""
-      if start_frame then
-        time_str = string.format(" (%s)", format_duration(rbs.frame - start_frame))
+      if s.start_frame then
+        time_str = string.format(" (%s)", format_duration(rbs.frame - s.start_frame))
       end
       file:write(
         string.format("RBS %d: Frame %s%s\n", rbs.rbs_num, format_number(rbs.frame), time_str)
       )
     end
 
-    for _, loop in ipairs(dk3_loop_milestones) do
+    for _, loop in ipairs(s.dk3_loop_milestones) do
       local time_str = ""
-      if start_frame then
-        time_str = string.format(" (%s)", format_duration(loop.frame - start_frame))
+      if s.start_frame then
+        time_str = string.format(" (%s)", format_duration(loop.frame - s.start_frame))
       end
       file:write(
         string.format(
@@ -837,14 +837,14 @@ local function export_text()
     end
 
     -- Frame ranges
-    if start_frame and (game_over_vram_frame or end_frame) then
-      local end_f = game_over_vram_frame or end_frame
-      local dur = end_f - start_frame
+    if s.start_frame and (s.game_over_vram_frame or s.end_frame) then
+      local end_f = s.game_over_vram_frame or s.end_frame
+      local dur = end_f - s.start_frame
       file:write("\n")
       file:write(
         string.format(
           "Full Game Frames: %s - %s (%s frames)\n",
-          format_number(start_frame),
+          format_number(s.start_frame),
           format_number(end_f),
           format_number(dur)
         )
@@ -852,12 +852,12 @@ local function export_text()
     end
 
     -- SCORE MILESTONES
-    if #score_milestones > 0 then
+    if #s.score_milestones > 0 then
       file:write("\nSCORE MILESTONES\n")
-      for _, ms in ipairs(score_milestones) do
+      for _, ms in ipairs(s.score_milestones) do
         local time_str = ""
-        if start_frame then
-          time_str = string.format(" - %s", format_duration(ms.frame - start_frame))
+        if s.start_frame then
+          time_str = string.format(" - %s", format_duration(ms.frame - s.start_frame))
         end
         local board_str = ms.board and string.format(" | Board %d", ms.board) or ""
         local timer_str = ms.bonus_timer
@@ -884,7 +884,7 @@ local function export_text()
     file:write("\n===================================\n\nSTAGE DATA\n")
 
     -- Board data
-    for _, board in ipairs(stage_data) do
+    for _, board in ipairs(s.stage_data) do
       if board.death then
         file:write(
           string.format(
@@ -923,11 +923,11 @@ local function export_text()
     local final_stage = ""
     local final_level = nil
     local final_stage_position = nil
-    for i = #stage_data, 1, -1 do
-      if not stage_data[i].is_level_total then
-        final_stage = stage_data[i].stage
-        final_level = stage_data[i].level
-        final_stage_position = stage_data[i].stage:match("%-(%d+)$")
+    for i = #s.stage_data, 1, -1 do
+      if not s.stage_data[i].is_level_total then
+        final_stage = s.stage_data[i].stage
+        final_level = s.stage_data[i].level
+        final_stage_position = s.stage_data[i].stage:match("%-(%d+)$")
         if final_stage_position then
           final_stage_position = tonumber(final_stage_position)
         end
@@ -945,14 +945,14 @@ local function export_text()
 
     -- SCORING SUMMARY
     file:write("\nSCORING SUMMARY\n")
-    file:write(string.format("Final Score: %s\n", format_number(prev_score)))
+    file:write(string.format("Final Score: %s\n", format_number(s.prev_score)))
     if final_stage ~= "" then
       file:write(string.format("Final Stage: %s\n", final_stage))
     end
-    file:write(string.format("Total Screens: %d\n", current_screen_num))
+    file:write(string.format("Total Screens: %d\n", s.current_screen_num))
 
     -- Pace
-    if final_level and last_pace then
+    if final_level and s.last_pace then
       if config.supports_22_4_pace then
         if
           final_level == 22
@@ -960,35 +960,35 @@ local function export_text()
           and final_stage_position >= 1
           and final_stage_position <= 3
         then
-          if last_pace_22_4 then
-            file:write(string.format("22-4 Pace: %s\n", format_number(last_pace_22_4)))
+          if s.last_pace_22_4 then
+            file:write(string.format("22-4 Pace: %s\n", format_number(s.last_pace_22_4)))
           end
         elseif final_level < 22 then
-          file:write(string.format("22-1 Pace: %s\n", format_number(last_pace)))
-          if last_pace_22_4 then
-            file:write(string.format("22-4 Pace: %s\n", format_number(last_pace_22_4)))
+          file:write(string.format("22-1 Pace: %s\n", format_number(s.last_pace)))
+          if s.last_pace_22_4 then
+            file:write(string.format("22-4 Pace: %s\n", format_number(s.last_pace_22_4)))
           end
         end
       else
         if final_level < 22 then
-          file:write(string.format("Pace: %s\n", format_number(last_pace)))
+          file:write(string.format("Pace: %s\n", format_number(s.last_pace)))
         end
       end
     end
 
     -- Start score
-    if start_score_total > 0 then
-      if start_phase_deaths > 0 then
+    if s.start_score_total > 0 then
+      if s.start_phase_deaths > 0 then
         file:write(
           string.format(
             "Start Score: %s (%s + %s)\n",
-            format_number(start_score_total),
-            format_number(start_score_for_pace),
-            format_number(start_phase_death_points)
+            format_number(s.start_score_total),
+            format_number(s.start_score_for_pace),
+            format_number(s.start_phase_death_points)
           )
         )
       else
-        file:write(string.format("Start Score: %s\n", format_number(start_score_total)))
+        file:write(string.format("Start Score: %s\n", format_number(s.start_score_total)))
       end
     end
 
@@ -1001,9 +1001,9 @@ local function export_text()
     end
 
     for _, i in ipairs(display_order) do
-      if #screen_scores[i] > 0 then
-        local best_score, best_labels, worst_score, worst_labels = find_best_worst(screen_scores[i])
-        local avg = screen_sum[i] / screen_count[i]
+      if #s.screen_scores[i] > 0 then
+        local best_score, best_labels, worst_score, worst_labels = find_best_worst(s.screen_scores[i])
+        local avg = s.screen_sum[i] / s.screen_count[i]
         file:write(
           string.format(
             "L%d+ %ss: Average: %s | Best: %s (%s) | Worst: %s (%s)\n",
@@ -1019,9 +1019,9 @@ local function export_text()
       end
     end
 
-    if #level_scores > 0 then
-      local best_score, best_labels, worst_score, worst_labels = find_best_worst(level_scores)
-      local avg = level_sum / level_count
+    if #s.level_scores > 0 then
+      local best_score, best_labels, worst_score, worst_labels = find_best_worst(s.level_scores)
+      local avg = s.level_sum / s.level_count
       file:write(
         string.format(
           "L%d+ Levels: Average: %s | Best: %s (%s) | Worst: %s (%s)\n",
@@ -1036,31 +1036,31 @@ local function export_text()
     end
 
     -- Recorded Lives / Deaths / Death Points
-    if starting_lives then
-      local total_lives = starting_lives + earned_lives
-      if earned_lives > 0 then
+    if s.starting_lives then
+      local total_lives = s.starting_lives + s.earned_lives
+      if s.earned_lives > 0 then
         file:write(
           string.format(
             "Recorded Lives (starting + bonus): %d (%d + %d)\n",
             total_lives,
-            starting_lives,
-            earned_lives
+            s.starting_lives,
+            s.earned_lives
           )
         )
       else
         file:write(string.format("Recorded Lives: %d\n", total_lives))
       end
     end
-    file:write(string.format("Recorded Deaths: %d\n", death_count))
-    file:write(string.format("Total Death Points: %s\n", format_number(total_death_points)))
+    file:write(string.format("Recorded Deaths: %d\n", s.death_count))
+    file:write(string.format("Total Death Points: %s\n", format_number(s.total_death_points)))
 
     -- TIMING SUMMARY
     local playing_frames = get_playing_time_frames()
     local has_plat_timing = playing_frames
-      or (speedrun_start_frame and speedrun_end_frame)
-      or (start_frame and start_phase_end_frame)
-      or (speedrun_start_frame and killscreen_frame)
-      or (start_frame and (game_over_vram_frame or end_frame))
+      or (s.speedrun_start_frame and s.speedrun_end_frame)
+      or (s.start_frame and s.start_phase_end_frame)
+      or (s.speedrun_start_frame and s.killscreen_frame)
+      or (s.start_frame and (s.game_over_vram_frame or s.end_frame))
 
     if has_plat_timing then
       file:write("\nTIMING SUMMARY\n")
@@ -1068,18 +1068,18 @@ local function export_text()
 
     -- Unofficial times (guaranteed: full game time; conditional: start, killscreen)
     -- Ordered shortest to longest expected duration
-    if speedrun_start_frame and speedrun_end_frame then
-      local dur = speedrun_end_frame - speedrun_start_frame
+    if s.speedrun_start_frame and s.speedrun_end_frame then
+      local dur = s.speedrun_end_frame - s.speedrun_start_frame
       file:write(string.format("Unofficial Speedrun Start Time: %s\n", format_duration(dur)))
     end
 
-    if start_frame and start_phase_end_frame then
-      local dur = start_phase_end_frame - start_frame
+    if s.start_frame and s.start_phase_end_frame then
+      local dur = s.start_phase_end_frame - s.start_frame
       file:write(string.format("Unofficial Standard Start Time: %s\n", format_duration(dur)))
     end
 
-    if speedrun_start_frame and killscreen_frame then
-      local dur = killscreen_frame - speedrun_start_frame
+    if s.speedrun_start_frame and s.killscreen_frame then
+      local dur = s.killscreen_frame - s.speedrun_start_frame
       file:write(string.format("Unofficial Speedrun Killscreen Time: %s\n", format_duration(dur)))
     end
 
@@ -1092,49 +1092,49 @@ local function export_text()
       file:write("\n")
     end
 
-    if speedrun_start_frame and speedrun_end_frame then
-      local dur = speedrun_end_frame - speedrun_start_frame
+    if s.speedrun_start_frame and s.speedrun_end_frame then
+      local dur = s.speedrun_end_frame - s.speedrun_start_frame
       file:write(
         string.format(
           "Speedrun Start Frames: %s - %s (%s frames)\n",
-          format_number(speedrun_start_frame),
-          format_number(speedrun_end_frame),
+          format_number(s.speedrun_start_frame),
+          format_number(s.speedrun_end_frame),
           format_number(dur)
         )
       )
     end
 
-    if start_frame and start_phase_end_frame then
-      local dur = start_phase_end_frame - start_frame
+    if s.start_frame and s.start_phase_end_frame then
+      local dur = s.start_phase_end_frame - s.start_frame
       file:write(
         string.format(
           "Standard Start Frames: %s - %s (%s frames)\n",
-          format_number(start_frame),
-          format_number(start_phase_end_frame),
+          format_number(s.start_frame),
+          format_number(s.start_phase_end_frame),
           format_number(dur)
         )
       )
     end
 
-    if speedrun_start_frame and killscreen_frame then
-      local dur = killscreen_frame - speedrun_start_frame
+    if s.speedrun_start_frame and s.killscreen_frame then
+      local dur = s.killscreen_frame - s.speedrun_start_frame
       file:write(
         string.format(
           "Speedrun Killscreen Frames: %s - %s (%s frames)\n",
-          format_number(speedrun_start_frame),
-          format_number(killscreen_frame),
+          format_number(s.speedrun_start_frame),
+          format_number(s.killscreen_frame),
           format_number(dur)
         )
       )
     end
 
-    if start_frame and (game_over_vram_frame or end_frame) then
-      local end_f = game_over_vram_frame or end_frame
-      local dur = end_f - start_frame
+    if s.start_frame and (s.game_over_vram_frame or s.end_frame) then
+      local end_f = s.game_over_vram_frame or s.end_frame
+      local dur = end_f - s.start_frame
       file:write(
         string.format(
           "Full Game Frames: %s - %s (%s frames)\n",
-          format_number(start_frame),
+          format_number(s.start_frame),
           format_number(end_f),
           format_number(dur)
         )
@@ -1142,12 +1142,12 @@ local function export_text()
     end
 
     -- SCORE MILESTONES
-    if #score_milestones > 0 then
+    if #s.score_milestones > 0 then
       file:write("\nSCORE MILESTONES\n")
-      for _, ms in ipairs(score_milestones) do
+      for _, ms in ipairs(s.score_milestones) do
         local time_str = ""
-        if start_frame then
-          time_str = string.format(" - %s", format_duration(ms.frame - start_frame))
+        if s.start_frame then
+          time_str = string.format(" - %s", format_duration(ms.frame - s.start_frame))
         end
         local stage_str = ms.stage and string.format(" | %s", ms.stage) or ""
         local timer_str = ms.bonus_timer
@@ -1176,7 +1176,7 @@ local function export_text()
     -- Per-stage data (unchanged from current format)
     local current_output_level = nil
 
-    for _, stage in ipairs(stage_data) do
+    for _, stage in ipairs(s.stage_data) do
       if stage.is_level_total then
         local level_display = format_level_for_display(stage.level)
         file:write(string.format("L%s: %s\n", level_display, format_number(stage.score_earned)))

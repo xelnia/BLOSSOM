@@ -4,6 +4,9 @@
 *.txt
 *_scores.*
 
+# LuaLS editor config (tracked despite *.json above)
+!.luarc.json
+
 # MAME files
 *.inp
 *.cfg

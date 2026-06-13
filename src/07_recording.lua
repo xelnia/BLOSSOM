@@ -13,7 +13,7 @@ local function record_board_dk3(
 )
   local board_info = {
     screen_num = screen_num,
-    board = get_board_name_dk3(actual_board, memory_board, dk3_current_loop),
+    board = get_board_name_dk3(actual_board, memory_board, s.dk3_current_loop),
     screen_type = get_screen_type_name(screen_type),
     level = actual_board,
     score_earned = score_earned,
@@ -28,13 +28,13 @@ local function record_board_dk3(
     bonus_timer = bonus_timer,
   }
 
-  table.insert(stage_data, board_info)
+  table.insert(s.stage_data, board_info)
 
   local config = get_config()
 
   -- Track averages (only for completed boards, not deaths, and only during max difficulty)
   local avg_str = ""
-  if not is_death and dk3_max_diff_reached then
+  if not is_death and s.dk3_max_diff_reached then
     -- Skip Board 0 (256, 512, etc.) - these are Blue boards not included in averages
     local memory_board_check = actual_board % config.loop_size
     if memory_board_check ~= 0 then
@@ -44,9 +44,9 @@ local function record_board_dk3(
       -- Update sum and count for this screen type (0, 1, or 2)
       if screen_type >= 0 and screen_type <= 2 then
         local idx = screen_type + 1 -- Lua arrays are 1-indexed
-        dk3_screen_sum[idx] = dk3_screen_sum[idx] + score_earned
-        dk3_screen_count[idx] = dk3_screen_count[idx] + 1
-        avg_value = dk3_screen_sum[idx] / dk3_screen_count[idx]
+        s.dk3_screen_sum[idx] = s.dk3_screen_sum[idx] + score_earned
+        s.dk3_screen_count[idx] = s.dk3_screen_count[idx] + 1
+        avg_value = s.dk3_screen_sum[idx] / s.dk3_screen_count[idx]
         avg_type = get_screen_type_name(screen_type) .. " Avg"
       end
 
@@ -93,13 +93,13 @@ local function record_board_dk3(
   if not is_death then
     local memory_board_check = actual_board % config.loop_size
     if memory_board_check == config.max_diff_board - 1 then
-      dk3_max_diff_count = dk3_max_diff_count + 1
-      dk3_max_diff_reached = true
-      local start_phase_score = total_score - dk3_loop_start_score
+      s.dk3_max_diff_count = s.dk3_max_diff_count + 1
+      s.dk3_max_diff_reached = true
+      local start_phase_score = total_score - s.dk3_loop_start_score
 
       -- Store milestone data (parallel to RBS/loop milestones)
-      table.insert(dk3_max_diff_milestones, {
-        count = dk3_max_diff_count,
+      table.insert(s.dk3_max_diff_milestones, {
+        count = s.dk3_max_diff_count,
         total_score = total_score,
         start_phase_score = start_phase_score,
         frame = frame_count,
@@ -108,7 +108,7 @@ local function record_board_dk3(
       print(
         string.format(
           "\n>>> MAX DIFFICULTY REACHED <<< | Start Phase %d Score: %s | Total Score: %s\n",
-          dk3_max_diff_count,
+          s.dk3_max_diff_count,
           format_number(start_phase_score),
           format_number(total_score)
         )
@@ -125,12 +125,12 @@ local function record_board_dk3(
       or (actual_board > rbs_trigger and (actual_board - rbs_trigger) % config.loop_size == 0)
     )
   then
-    dk3_rbs_count = dk3_rbs_count + 1
-    local rbs_score = total_score - dk3_loop_start_score
+    s.dk3_rbs_count = s.dk3_rbs_count + 1
+    local rbs_score = total_score - s.dk3_loop_start_score
 
     -- Store milestone data
-    table.insert(dk3_rbs_milestones, {
-      rbs_num = dk3_rbs_count,
+    table.insert(s.dk3_rbs_milestones, {
+      rbs_num = s.dk3_rbs_count,
       total_score = total_score,
       rbs_score = rbs_score,
       frame = frame_count,
@@ -139,8 +139,8 @@ local function record_board_dk3(
     print(
       string.format(
         "\n>>> REPETITIVE BLUE SCREEN %d REACHED <<< | RBS %d Score: %s | Total Score: %s\n",
-        dk3_rbs_count,
-        dk3_rbs_count,
+        s.dk3_rbs_count,
+        s.dk3_rbs_count,
         format_number(rbs_score),
         format_number(total_score)
       )
@@ -150,10 +150,10 @@ local function record_board_dk3(
   -- Check for loop completion (every loop_size boards = memory board 0)
   if not is_death and actual_board % config.loop_size == 0 and actual_board > 0 then
     local loop_num = actual_board / config.loop_size -- Which loop just completed (1, 2, 3, etc.)
-    local loop_score = total_score - dk3_loop_start_score
+    local loop_score = total_score - s.dk3_loop_start_score
 
     -- Store milestone data
-    table.insert(dk3_loop_milestones, {
+    table.insert(s.dk3_loop_milestones, {
       loop_num = loop_num,
       total_score = total_score,
       loop_score = loop_score,
@@ -171,7 +171,7 @@ local function record_board_dk3(
     )
 
     -- Pause average tracking for next loop's start phase
-    dk3_max_diff_reached = false
+    s.dk3_max_diff_reached = false
   end
 end
 
@@ -207,22 +207,22 @@ local function record_stage(
     lives = lives_remaining,
   }
 
-  table.insert(stage_data, stage_info)
+  table.insert(s.stage_data, stage_info)
 
   -- Track start phase scores and deaths
   local config = get_config()
-  if start_score_total == 0 then -- Still in start phase
+  if s.start_score_total == 0 then -- Still in start phase
     if is_death then
       -- Track deaths during start phase
-      start_phase_deaths = start_phase_deaths + 1
-      start_phase_death_points = start_phase_death_points + score_earned
+      s.start_phase_deaths = s.start_phase_deaths + 1
+      s.start_phase_death_points = s.start_phase_death_points + score_earned
     else
       -- Accumulate stage scores during start phase
-      start_score_for_pace = start_score_for_pace + score_earned
+      s.start_score_for_pace = s.start_score_for_pace + score_earned
 
       -- Check if this completes the start phase
       if level == config.start_level and position == config.start_stage then
-        start_score_total = total_score
+        s.start_score_total = total_score
       end
     end
   end
@@ -235,9 +235,9 @@ local function record_stage(
 
     -- Update sum and count for this screen type
     if screen_type >= 1 and screen_type <= 4 then
-      screen_sum[screen_type] = screen_sum[screen_type] + score_earned
-      screen_count[screen_type] = screen_count[screen_type] + 1
-      avg_value = screen_sum[screen_type] / screen_count[screen_type]
+      s.screen_sum[screen_type] = s.screen_sum[screen_type] + score_earned
+      s.screen_count[screen_type] = s.screen_count[screen_type] + 1
+      avg_value = s.screen_sum[screen_type] / s.screen_count[screen_type]
       avg_type = get_screen_type_name(screen_type) .. " Avg"
     end
 
@@ -255,13 +255,13 @@ local function record_stage(
     then
       local all_screens_seen = true
       for i = 1, 4 do
-        if screen_count[i] == 0 then
+        if s.screen_count[i] == 0 then
           all_screens_seen = false
           break
         end
       end
       if all_screens_seen then
-        can_calculate_pace = true
+        s.can_calculate_pace = true
       end
     end
   end
@@ -283,7 +283,7 @@ local function record_stage(
     -- Store score in appropriate screen type array
     if screen_type >= 1 and screen_type <= 4 then
       table.insert(
-        screen_scores[screen_type],
+        s.screen_scores[screen_type],
         { score = score_earned, label = stage_label, level = level }
       )
     end
@@ -296,13 +296,13 @@ local function record_stage(
     if pace then
       -- Store pace in stage_info for text file output
       stage_info.pace = pace
-      last_pace = pace
+      s.last_pace = pace
 
       -- Check if we should show extended pace (ckongpt2 only)
       local pace_22_4 = calculate_22_4_pace(pace, lives_remaining)
       if pace_22_4 then
         stage_info.pace_22_4 = pace_22_4
-        last_pace_22_4 = pace_22_4
+        s.last_pace_22_4 = pace_22_4
 
         -- On 22-1->22-3: show only 22-4 pace
         if level == 22 and position >= 1 and position <= 3 then
@@ -365,15 +365,15 @@ local function record_level_total(level, score_earned, total_score)
     frame = frame_count,
   }
 
-  table.insert(stage_data, level_info)
+  table.insert(s.stage_data, level_info)
 
   -- Track L5-L21 level averages
   local avg_str = ""
   local config = get_config()
   if level >= config.begin_avg and level <= 21 then
-    level_sum = level_sum + score_earned
-    level_count = level_count + 1
-    avg_str = string.format(" | Level Avg: %s", format_number_decimal(level_sum / level_count))
+    s.level_sum = s.level_sum + score_earned
+    s.level_count = s.level_count + 1
+    avg_str = string.format(" | Level Avg: %s", format_number_decimal(s.level_sum / s.level_count))
   end
 
   -- Track level scores for best/worst analysis
@@ -381,7 +381,7 @@ local function record_level_total(level, score_earned, total_score)
   if level >= config.begin_avg and level <= 21 then
     local level_display = format_level_for_display(level)
     table.insert(
-      level_scores,
+      s.level_scores,
       { score = score_earned, label = string.format("L%s", level_display), level = level }
     )
   end
@@ -444,13 +444,13 @@ end
 
 -- Calculate DK3 life statistics
 local function calculate_dk3_life_stats()
-  if #dk3_life_tracking == 0 then
+  if #s.dk3_life_tracking == 0 then
     return nil -- No deaths yet
   end
 
   local stats = {
-    total_lives = #dk3_life_tracking,
-    first_life_score = dk3_life_tracking[1].end_score - dk3_life_tracking[1].start_score,
+    total_lives = #s.dk3_life_tracking,
+    first_life_score = s.dk3_life_tracking[1].end_score - s.dk3_life_tracking[1].start_score,
     last_life_score = 0,
     five_lives_score = nil,
     longest_life_points = { score = 0, life_nums = {} },
@@ -462,19 +462,19 @@ local function calculate_dk3_life_stats()
   }
 
   -- Calculate last life score
-  local last_life = dk3_life_tracking[#dk3_life_tracking]
+  local last_life = s.dk3_life_tracking[#s.dk3_life_tracking]
   stats.last_life_score = last_life.end_score - last_life.start_score
 
   -- Calculate 5 lives score (score at 5th death)
-  if #dk3_life_tracking >= 5 then
-    stats.five_lives_score = dk3_life_tracking[5].end_score
+  if #s.dk3_life_tracking >= 5 then
+    stats.five_lives_score = s.dk3_life_tracking[5].end_score
   end
 
   -- Find longest/shortest lives and calculate totals
   local total_points = 0
   local total_boards = 0
 
-  for _, life in ipairs(dk3_life_tracking) do
+  for _, life in ipairs(s.dk3_life_tracking) do
     local life_points = life.end_score - life.start_score
     local life_boards = life.boards_completed
 
