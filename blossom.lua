@@ -572,6 +572,11 @@ local inp_playback_active = false -- Set true at startup if INP playback detecte
 local inp_playback_ended = false -- Set true when INP playback option goes empty
 local inp_end_frame = nil -- Frame number when INP end was detected
 
+-- Recorded Lives tracking (all games)
+local starting_lives = nil -- Lives count at first gameplay frame
+local earned_lives = 0 -- Accumulated upward increments (bonus lives)
+local prev_lives_for_earn = nil -- Previous frame's lives for delta detection
+
 -- Score milestones (all games)
 local score_milestones = {} -- {score, frame} entries at every 100K
 local next_score_milestone = 100000
@@ -1662,6 +1667,9 @@ local function export_json()
     { "final_score", prev_score },
     { "final_level", final_level_str },
     { "final_stage", final_stage_num },
+    { "recorded_lives", starting_lives and (starting_lives + earned_lives) or nil },
+    { "starting_lives", starting_lives },
+    { "earned_lives", earned_lives },
     { "recorded_deaths", death_count },
     { "total_death_points", total_death_points },
   }
@@ -1717,7 +1725,6 @@ local function export_json()
     local life_stats = calculate_dk3_life_stats()
     if life_stats then
       local life_pairs = {
-        { "recorded_lives", life_stats.total_lives },
         { "first_life_score", life_stats.first_life_score },
         { "five_lives_score", life_stats.five_lives_score },
         { "last_life_score", life_stats.last_life_score },
@@ -2105,8 +2112,18 @@ local function export_text()
     if final_board ~= "" then
       file:write(string.format("Final Board: %s\n", final_board))
     end
-    file:write(string.format("Recorded Deaths: %d\n", death_count))
-    file:write(string.format("Total Death Points: %s\n", format_number(total_death_points)))
+
+    local life_stats = calculate_dk3_life_stats()
+
+    -- 5 Lives Score (headline stat)
+    if
+      life_stats
+      and life_stats.five_lives_score
+      and game_variation
+      and not game_variation:match("5 Lives")
+    then
+      file:write(string.format("5 Lives Score: %s\n", format_number(life_stats.five_lives_score)))
+    end
 
     -- RBS milestones (score data)
     for _, rbs in ipairs(dk3_rbs_milestones) do
@@ -2149,23 +2166,13 @@ local function export_text()
     end
 
     -- Life statistics
-    local life_stats = calculate_dk3_life_stats()
+
     if life_stats then
       file:write("\n")
-
-      if game_variation and not game_variation:match("5 Lives") then
-        file:write(
-          string.format("Recorded Lives: %d\n", life_stats.total_lives)
-        )
-      end
 
       file:write(
         string.format("First Life Score: %s\n", format_number(life_stats.first_life_score))
       )
-
-      if life_stats.five_lives_score and game_variation and not game_variation:match("5 Lives") then
-        file:write(string.format("5 Lives Score: %s\n", format_number(life_stats.five_lives_score)))
-      end
 
       file:write(string.format("Last Life Score: %s\n", format_number(life_stats.last_life_score)))
 
@@ -2217,6 +2224,28 @@ local function export_text()
       )
       file:write(string.format("Average Life (boards): %d\n", math.floor(life_stats.avg_boards)))
     end
+
+    -- Recorded Lives / Deaths / Death Points
+    file:write("\n")
+    if starting_lives then
+      local total_lives = starting_lives + earned_lives
+      if not game_variation or not game_variation:match("5 Lives") then
+        if earned_lives > 0 then
+          file:write(
+            string.format(
+              "Recorded Lives (starting + bonus): %d (%d + %d)\n",
+              total_lives,
+              starting_lives,
+              earned_lives
+            )
+          )
+        else
+          file:write(string.format("Recorded Lives: %d\n", total_lives))
+        end
+      end
+    end
+    file:write(string.format("Recorded Deaths: %d\n", death_count))
+    file:write(string.format("Total Death Points: %s\n", format_number(total_death_points)))
 
     -- TIMING SUMMARY
     local playing_frames = get_playing_time_frames()
@@ -2390,8 +2419,6 @@ local function export_text()
       file:write(string.format("Final Stage: %s\n", final_stage))
     end
     file:write(string.format("Total Screens: %d\n", current_screen_num))
-    file:write(string.format("Recorded Deaths: %d\n", death_count))
-    file:write(string.format("Total Death Points: %s\n", format_number(total_death_points)))
 
     -- Pace
     if final_level and last_pace then
@@ -2476,6 +2503,25 @@ local function export_text()
         )
       )
     end
+
+    -- Recorded Lives / Deaths / Death Points
+    if starting_lives then
+      local total_lives = starting_lives + earned_lives
+      if earned_lives > 0 then
+        file:write(
+          string.format(
+            "Recorded Lives (starting + bonus): %d (%d + %d)\n",
+            total_lives,
+            starting_lives,
+            earned_lives
+          )
+        )
+      else
+        file:write(string.format("Recorded Lives: %d\n", total_lives))
+      end
+    end
+    file:write(string.format("Recorded Deaths: %d\n", death_count))
+    file:write(string.format("Total Death Points: %s\n", format_number(total_death_points)))
 
     -- TIMING SUMMARY
     local playing_frames = get_playing_time_frames()
@@ -2770,6 +2816,22 @@ local function print_platformer_summary(header_text, current_score)
     )
   end
 
+  -- Recorded Lives / Deaths / Death Points (diagnostic group)
+  if starting_lives then
+    local total_lives = starting_lives + earned_lives
+    if earned_lives > 0 then
+      print(
+        string.format(
+          "Recorded Lives (starting + bonus): %d (%d + %d)",
+          total_lives,
+          starting_lives,
+          earned_lives
+        )
+      )
+    else
+      print(string.format("Recorded Lives: %d", total_lives))
+    end
+  end
   print(string.format("Recorded Deaths: %d", death_count))
   print(string.format("Total Death Points: %s", format_number(total_death_points)))
 
@@ -2889,21 +2951,22 @@ local function print_dk3_summary(header_text, current_score)
 
   -- Life statistics
   local life_stats = calculate_dk3_life_stats()
-  if life_stats then
-    print("") -- Blank line before life stats
 
-    -- Only show Recorded Lives for Marathon variations (redundant for 5 Lives)
-    if game_variation and not game_variation:match("5 Lives") then
-      print(string.format("Recorded Lives (starting + earned): %d", life_stats.total_lives))
-    end
+  -- 5 Lives Score (headline stat, shown before life details)
+  if
+    life_stats
+    and life_stats.five_lives_score
+    and game_variation
+    and not game_variation:match("5 Lives")
+  then
+    print(string.format("5 Lives Score: %s", format_number(life_stats.five_lives_score)))
+  end
+
+  -- Per-life detail statistics
+  if life_stats then
+    print("") -- Blank line before life details
 
     print(string.format("First Life Score: %s", format_number(life_stats.first_life_score)))
-
-    -- Only show 5 Lives Score if: Marathon variation AND player died 5+ times
-    if life_stats.five_lives_score and game_variation and not game_variation:match("5 Lives") then
-      print(string.format("5 Lives Score: %s", format_number(life_stats.five_lives_score)))
-    end
-
     print(string.format("Last Life Score: %s", format_number(life_stats.last_life_score)))
 
     -- Longest life by points
@@ -2954,6 +3017,26 @@ local function print_dk3_summary(header_text, current_score)
     print(string.format("Average Life (boards): %d", math.floor(life_stats.avg_boards)))
   end
 
+  -- Recorded Lives / Deaths / Death Points (diagnostic group)
+  print("") -- Blank line before diagnostic group
+  if starting_lives then
+    local total_lives = starting_lives + earned_lives
+    -- Only show Recorded Lives for Marathon variations (redundant for 5 Lives)
+    if not game_variation or not game_variation:match("5 Lives") then
+      if earned_lives > 0 then
+        print(
+          string.format(
+            "Recorded Lives (starting + bonus): %d (%d + %d)",
+            total_lives,
+            starting_lives,
+            earned_lives
+          )
+        )
+      else
+        print(string.format("Recorded Lives: %d", total_lives))
+      end
+    end
+  end
   print(string.format("Recorded Deaths: %d", death_count))
   print(string.format("Total Death Points: %s", format_number(total_death_points)))
 
@@ -3009,6 +3092,193 @@ local function print_dk3_summary(header_text, current_score)
 end
 
 -- ============================================================================
+-- SESSION FINALIZATION
+-- ============================================================================
+-- Consolidates game over, INP end, and manual exit into a single path.
+-- Called from: frame loop (game over, INP end) and stop callback (manual exit).
+local function finalize_session(reason)
+  if game_over_processed then
+    return
+  end
+  if current_screen_num == 0 then
+    return
+  end
+
+  local config = get_config()
+  local current_score = read_score_with_rollover_check()
+
+  -- Settle any pending death before processing session end
+  if GAME_TYPE == "dkong3" then
+    if dk3_death_pending then
+      death_count = death_count + 1
+      local score_earned = current_score - dk3_death_pending_start_score
+      total_death_points = total_death_points + score_earned
+
+      local death_board_num = dk3_actual_board_num + 1
+
+      record_board_dk3(
+        death_board_num,
+        dk3_death_pending_level,
+        current_screen_num,
+        score_earned,
+        current_score,
+        true,
+        death_count,
+        dk3_death_pending_lives_at_death,
+        dk3_death_pending_screen_type,
+        dk3_death_pending_bonus
+      )
+
+      local boards_completed = dk3_actual_board_num - dk3_current_life_start_board + 1
+      if boards_completed < 0 then
+        boards_completed = 0
+      end
+
+      table.insert(dk3_life_tracking, {
+        life_num = death_count,
+        start_score = dk3_current_life_start_score,
+        end_score = current_score,
+        start_board = dk3_current_life_start_board,
+        boards_completed = boards_completed,
+      })
+
+      dk3_current_life_start_score = current_score
+      dk3_current_life_start_board = death_board_num
+      stage_start_score = current_score
+      prev_score = current_score
+      dk3_death_pending = false
+      dk3_death_pending_screen_type = 0
+      dk3_death_pending_level = 0
+      dk3_death_pending_lives_at_death = 0
+      dk3_death_pending_bonus = 0
+      dk3_death_pending_start_score = 0
+    end
+  else
+    if death_pending then
+      death_count = death_count + 1
+      local score_earned = current_score - stage_start_score
+      total_death_points = total_death_points + score_earned
+
+      record_stage(
+        death_pending_screen_type,
+        death_pending_level,
+        death_pending_position,
+        current_screen_num,
+        score_earned,
+        current_score,
+        true,
+        death_count,
+        read_byte(config.addresses.lives),
+        death_pending_bonus
+      )
+
+      last_stage_was_completed = false
+      stage_start_score = current_score
+      prev_score = current_score
+      death_pending = false
+      death_pending_screen_type = 0
+      death_pending_level = 0
+      death_pending_position = 0
+      death_pending_bonus = 0
+    end
+  end
+
+  -- Capture end frame for duration calculation
+  if not end_frame then
+    if inp_end_frame then
+      end_frame = inp_end_frame
+    else
+      end_frame = frame_count - 1
+    end
+  end
+
+  -- Game-specific finalization and summary
+  if GAME_TYPE == "dkong3" then
+    -- Capture VRAM-based game over timing (only for actual game over)
+    if reason == "GAME OVER" and not game_over_vram_frame then
+      local vram_tile = read_byte(config.addresses.game_over_vram)
+      if vram_tile == 0x17 then
+        game_over_vram_frame = frame_count
+        if start_frame then
+          local go_dur = game_over_vram_frame - start_frame
+          print(
+            string.format(
+              "  [Timing] Standard Game End: Frame %s (%s frames - %s)",
+              format_number(game_over_vram_frame),
+              format_number(go_dur),
+              format_duration(go_dur)
+            )
+          )
+        end
+      end
+    end
+
+    -- Record current life in progress (SESSION ENDED only)
+    if reason ~= "GAME OVER" then
+      if
+        death_count == 0
+        or (dk3_actual_board_num > 0 and dk3_current_life_start_score < current_score)
+      then
+        local boards_completed = dk3_actual_board_num - dk3_current_life_start_board + 1
+        if boards_completed < 0 then
+          boards_completed = 0
+        end
+
+        table.insert(dk3_life_tracking, {
+          life_num = death_count + 1,
+          start_score = dk3_current_life_start_score,
+          end_score = current_score,
+          start_board = dk3_current_life_start_board,
+          boards_completed = boards_completed,
+        })
+      end
+    end
+
+    print_dk3_summary(reason, current_score)
+  else
+    -- Capture VRAM-based game over timing (only for actual game over)
+    if reason == "GAME OVER" and not game_over_vram_frame then
+      local vram_tile = read_byte(config.addresses.game_over_vram)
+      if vram_tile == 0x17 then
+        game_over_vram_frame = frame_count
+        if start_frame then
+          local go_dur = game_over_vram_frame - start_frame
+          print(
+            string.format(
+              "  [Timing] Standard Game End: Frame %s (%s frames - %s)",
+              format_number(game_over_vram_frame),
+              format_number(go_dur),
+              format_duration(go_dur)
+            )
+          )
+        end
+      end
+    end
+
+    -- Record final level total
+    local is_killscreen = (current_level_being_played == 22 and level_position[22] == 1)
+
+    if
+      current_level_being_played > 0
+      and level_score_accumulated > 0
+      and (is_killscreen or last_stage_was_completed)
+    then
+      record_level_total(current_level_being_played, level_score_accumulated, current_score)
+    end
+
+    print_platformer_summary(reason, current_score)
+  end
+
+  export_csv()
+  export_json()
+  export_text()
+  print("") -- Blank line to separate from WolfMAME messages
+
+  game_over_processed = true
+  prev_score = current_score
+end
+
+-- ============================================================================
 -- MAIN FRAME LOOP - PLATFORMER GAMES (DK/DKJR/CK)
 -- ============================================================================
 local function on_frame_platformer()
@@ -3022,6 +3292,7 @@ local function on_frame_platformer()
   then
     inp_playback_ended = true
     inp_end_frame = frame_count
+    finalize_session("SESSION ENDED")
     return
   end
   if inp_playback_ended then
@@ -3136,6 +3407,19 @@ local function on_frame_platformer()
       )
       next_score_milestone = next_score_milestone + 100000
     end
+  end
+
+  -- RECORDED LIVES TRACKING
+  if gameplay_started then
+    local current_lives = read_byte(config.addresses.lives)
+    if not starting_lives then
+      starting_lives = current_lives
+      prev_lives_for_earn = current_lives
+    end
+    if prev_lives_for_earn and current_lives > prev_lives_for_earn then
+      earned_lives = earned_lives + (current_lives - prev_lives_for_earn)
+    end
+    prev_lives_for_earn = current_lives
   end
 
   -- SPEEDRUN START: First position change (memory leads visual by 1 frame)
@@ -3336,47 +3620,7 @@ local function on_frame_platformer()
     and prev_game_mode ~= config.modes.game_over
     and not game_over_processed
   then
-    local current_score = read_score_with_rollover_check()
-
-    game_over_processed = true
-
-    -- Capture end frame for duration calculation
-    if not end_frame then
-      end_frame = frame_count - 1
-    end
-
-    -- Capture VRAM-based game over timing
-    if not game_over_vram_frame then
-      local vram_tile = read_byte(config.addresses.game_over_vram)
-      if vram_tile == 0x17 then
-        game_over_vram_frame = frame_count
-        if start_frame then
-          local go_dur = game_over_vram_frame - start_frame
-          print(
-            string.format(
-              "  [Timing] Standard Game End: Frame %s (%s frames - %s)",
-              format_number(game_over_vram_frame),
-              format_number(go_dur),
-              format_duration(go_dur)
-            )
-          )
-        end
-      end
-    end
-
-    -- Only record final level total if NOT on killscreen death
-    local is_killscreen = (current_level_being_played == 22 and level_position[22] == 1)
-
-    if current_level_being_played > 0 and (is_killscreen or last_stage_was_completed) then
-      record_level_total(current_level_being_played, level_score_accumulated, current_score)
-    end
-
-    print_platformer_summary("GAME OVER", current_score)
-    export_csv()
-    export_json()
-    export_text()
-    print("") -- Blank line after exports to separate from WolfMAME messages
-    prev_score = current_score
+    finalize_session("GAME OVER")
   end
 
   -- Update previous state
@@ -3399,6 +3643,7 @@ local function on_frame_dkong3()
   then
     inp_playback_ended = true
     inp_end_frame = frame_count
+    finalize_session("SESSION ENDED")
     return
   end
   if inp_playback_ended then
@@ -3554,6 +3799,19 @@ local function on_frame_dkong3()
     end
   end
 
+  -- RECORDED LIVES TRACKING
+  if gameplay_started then
+    local current_lives = read_byte(config.addresses.lives)
+    if not starting_lives then
+      starting_lives = current_lives
+      prev_lives_for_earn = current_lives
+    end
+    if prev_lives_for_earn and current_lives > prev_lives_for_earn then
+      earned_lives = earned_lives + (current_lives - prev_lives_for_earn)
+    end
+    prev_lives_for_earn = current_lives
+  end
+
   -- SPEEDRUN START: Deferred for DK3 (no established speedrun category)
   -- Requires button press detection in addition to position change
 
@@ -3640,40 +3898,7 @@ local function on_frame_dkong3()
     and dk3_prev_game_mode ~= config.modes.game_over_2
     and not game_over_processed
   then
-    local current_score = read_score_with_rollover_check()
-
-    game_over_processed = true
-
-    -- Capture end frame for duration calculation
-    if not end_frame then
-      end_frame = frame_count - 1
-    end
-
-    -- Capture VRAM-based game over timing
-    if not game_over_vram_frame then
-      local vram_tile = read_byte(config.addresses.game_over_vram)
-      if vram_tile == 0x17 then
-        game_over_vram_frame = frame_count
-        if start_frame then
-          local go_dur = game_over_vram_frame - start_frame
-          print(
-            string.format(
-              "  [Timing] Standard Game End: Frame %s (%s frames - %s)",
-              format_number(game_over_vram_frame),
-              format_number(go_dur),
-              format_duration(go_dur)
-            )
-          )
-        end
-      end
-    end
-
-    print_dk3_summary("GAME OVER", current_score)
-    export_csv()
-    export_json()
-    export_text()
-    print("") -- Blank line after exports to separate from WolfMAME messages
-    prev_score = current_score
+    finalize_session("GAME OVER")
   end
 
   -- Update previous state
@@ -3733,141 +3958,5 @@ end
 register_frame_callback(protected_on_frame)
 
 register_stop_callback(function()
-  -- Settle any pending death before processing session end
-  -- Platformer: mirrors frame loop settlement in on_frame_platformer() in 10_frame_loops.lua ~line 15
-  if death_pending then
-    local current_score = read_score_with_rollover_check()
-    death_count = death_count + 1
-    local score_earned = current_score - stage_start_score
-    total_death_points = total_death_points + score_earned
-    local stop_config = get_config()
-
-    record_stage(
-      death_pending_screen_type,
-      death_pending_level,
-      death_pending_position,
-      current_screen_num,
-      score_earned,
-      current_score,
-      true,
-      death_count,
-      read_byte(stop_config.addresses.lives),
-      death_pending_bonus
-    )
-
-    last_stage_was_completed = false
-    stage_start_score = current_score
-    prev_score = current_score
-    death_pending = false
-    death_pending_screen_type = 0
-    death_pending_level = 0
-    death_pending_position = 0
-    death_pending_bonus = 0
-  end
-
-  -- DK3: mirrors frame loop settlement in on_frame_dkong3() in 10_frame_loops.lua ~line 373
-  if dk3_death_pending then
-    local current_score = read_score_with_rollover_check()
-    death_count = death_count + 1
-    local score_earned = current_score - dk3_death_pending_start_score
-    total_death_points = total_death_points + score_earned
-
-    local death_board_num = dk3_actual_board_num + 1
-
-    record_board_dk3(
-      death_board_num,
-      dk3_death_pending_level,
-      current_screen_num,
-      score_earned,
-      current_score,
-      true,
-      death_count,
-      dk3_death_pending_lives_at_death,
-      dk3_death_pending_screen_type,
-      dk3_death_pending_bonus
-    )
-
-    local boards_completed = dk3_actual_board_num - dk3_current_life_start_board + 1
-    if boards_completed < 0 then
-      boards_completed = 0
-    end
-
-    table.insert(dk3_life_tracking, {
-      life_num = death_count,
-      start_score = dk3_current_life_start_score,
-      end_score = current_score,
-      start_board = dk3_current_life_start_board,
-      boards_completed = boards_completed,
-    })
-
-    dk3_current_life_start_score = current_score
-    dk3_current_life_start_board = death_board_num
-    stage_start_score = current_score
-    prev_score = current_score
-    dk3_death_pending = false
-    dk3_death_pending_screen_type = 0
-    dk3_death_pending_level = 0
-    dk3_death_pending_lives_at_death = 0
-    dk3_death_pending_bonus = 0
-    dk3_death_pending_start_score = 0
-  end
-
-  -- Only process if game over hasn't been handled yet
-  if not game_over_processed and current_screen_num > 0 then
-    local current_score = read_score_with_rollover_check()
-
-    -- Capture end frame for duration calculation
-    -- Use INP end frame if playback ended before manual exit
-    if not end_frame then
-      if inp_end_frame then
-        end_frame = inp_end_frame - 1
-      else
-        end_frame = frame_count - 1
-      end
-    end
-
-    if GAME_TYPE == "dkong3" then
-      -- If we're mid-life when exiting, record the current life
-      if
-        death_count == 0
-        or (dk3_actual_board_num > 0 and dk3_current_life_start_score < current_score)
-      then
-        -- Calculate boards completed for current life
-        local boards_completed = dk3_actual_board_num - dk3_current_life_start_board + 1
-        if boards_completed < 0 then
-          boards_completed = 0
-        end
-
-        -- Record the life in progress
-        table.insert(dk3_life_tracking, {
-          life_num = death_count + 1, -- This would be the next death number
-          start_score = dk3_current_life_start_score,
-          end_score = current_score,
-          start_board = dk3_current_life_start_board,
-          boards_completed = boards_completed,
-        })
-      end
-
-      print_dk3_summary("SESSION ENDED", current_score)
-    else
-      -- Determine if this is killscreen
-      local is_killscreen = (current_level_being_played == 22 and level_position[22] == 1)
-
-      -- Record final level total only if appropriate
-      if
-        current_level_being_played > 0
-        and level_score_accumulated > 0
-        and (is_killscreen or last_stage_was_completed)
-      then
-        record_level_total(current_level_being_played, level_score_accumulated, current_score)
-      end
-
-      print_platformer_summary("SESSION ENDED", current_score)
-    end
-
-    export_csv()
-    export_json()
-    export_text()
-    print("") -- Blank line to separate from WolfMAME messages
-  end
+  finalize_session("SESSION ENDED")
 end)

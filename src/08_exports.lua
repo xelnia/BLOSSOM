@@ -198,6 +198,9 @@ local function export_json()
     { "final_score", prev_score },
     { "final_level", final_level_str },
     { "final_stage", final_stage_num },
+    { "recorded_lives", starting_lives and (starting_lives + earned_lives) or nil },
+    { "starting_lives", starting_lives },
+    { "earned_lives", earned_lives },
     { "recorded_deaths", death_count },
     { "total_death_points", total_death_points },
   }
@@ -253,7 +256,6 @@ local function export_json()
     local life_stats = calculate_dk3_life_stats()
     if life_stats then
       local life_pairs = {
-        { "recorded_lives", life_stats.total_lives },
         { "first_life_score", life_stats.first_life_score },
         { "five_lives_score", life_stats.five_lives_score },
         { "last_life_score", life_stats.last_life_score },
@@ -641,8 +643,18 @@ local function export_text()
     if final_board ~= "" then
       file:write(string.format("Final Board: %s\n", final_board))
     end
-    file:write(string.format("Recorded Deaths: %d\n", death_count))
-    file:write(string.format("Total Death Points: %s\n", format_number(total_death_points)))
+
+    local life_stats = calculate_dk3_life_stats()
+
+    -- 5 Lives Score (headline stat)
+    if
+      life_stats
+      and life_stats.five_lives_score
+      and game_variation
+      and not game_variation:match("5 Lives")
+    then
+      file:write(string.format("5 Lives Score: %s\n", format_number(life_stats.five_lives_score)))
+    end
 
     -- RBS milestones (score data)
     for _, rbs in ipairs(dk3_rbs_milestones) do
@@ -685,23 +697,13 @@ local function export_text()
     end
 
     -- Life statistics
-    local life_stats = calculate_dk3_life_stats()
+
     if life_stats then
       file:write("\n")
-
-      if game_variation and not game_variation:match("5 Lives") then
-        file:write(
-          string.format("Recorded Lives: %d\n", life_stats.total_lives)
-        )
-      end
 
       file:write(
         string.format("First Life Score: %s\n", format_number(life_stats.first_life_score))
       )
-
-      if life_stats.five_lives_score and game_variation and not game_variation:match("5 Lives") then
-        file:write(string.format("5 Lives Score: %s\n", format_number(life_stats.five_lives_score)))
-      end
 
       file:write(string.format("Last Life Score: %s\n", format_number(life_stats.last_life_score)))
 
@@ -753,6 +755,28 @@ local function export_text()
       )
       file:write(string.format("Average Life (boards): %d\n", math.floor(life_stats.avg_boards)))
     end
+
+    -- Recorded Lives / Deaths / Death Points
+    file:write("\n")
+    if starting_lives then
+      local total_lives = starting_lives + earned_lives
+      if not game_variation or not game_variation:match("5 Lives") then
+        if earned_lives > 0 then
+          file:write(
+            string.format(
+              "Recorded Lives (starting + bonus): %d (%d + %d)\n",
+              total_lives,
+              starting_lives,
+              earned_lives
+            )
+          )
+        else
+          file:write(string.format("Recorded Lives: %d\n", total_lives))
+        end
+      end
+    end
+    file:write(string.format("Recorded Deaths: %d\n", death_count))
+    file:write(string.format("Total Death Points: %s\n", format_number(total_death_points)))
 
     -- TIMING SUMMARY
     local playing_frames = get_playing_time_frames()
@@ -926,8 +950,6 @@ local function export_text()
       file:write(string.format("Final Stage: %s\n", final_stage))
     end
     file:write(string.format("Total Screens: %d\n", current_screen_num))
-    file:write(string.format("Recorded Deaths: %d\n", death_count))
-    file:write(string.format("Total Death Points: %s\n", format_number(total_death_points)))
 
     -- Pace
     if final_level and last_pace then
@@ -1012,6 +1034,25 @@ local function export_text()
         )
       )
     end
+
+    -- Recorded Lives / Deaths / Death Points
+    if starting_lives then
+      local total_lives = starting_lives + earned_lives
+      if earned_lives > 0 then
+        file:write(
+          string.format(
+            "Recorded Lives (starting + bonus): %d (%d + %d)\n",
+            total_lives,
+            starting_lives,
+            earned_lives
+          )
+        )
+      else
+        file:write(string.format("Recorded Lives: %d\n", total_lives))
+      end
+    end
+    file:write(string.format("Recorded Deaths: %d\n", death_count))
+    file:write(string.format("Total Death Points: %s\n", format_number(total_death_points)))
 
     -- TIMING SUMMARY
     local playing_frames = get_playing_time_frames()

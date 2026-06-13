@@ -108,6 +108,11 @@ local inp_playback_active = false -- Set true at startup if INP playback detecte
 local inp_playback_ended = false -- Set true when INP playback option goes empty
 local inp_end_frame = nil -- Frame number when INP end was detected
 
+-- Recorded Lives tracking (all games)
+local starting_lives = nil -- Lives count at first gameplay frame
+local earned_lives = 0 -- Accumulated upward increments (bonus lives)
+local prev_lives_for_earn = nil -- Previous frame's lives for delta detection
+
 -- Score milestones (all games)
 local score_milestones = {} -- {score, frame} entries at every 100K
 local next_score_milestone = 100000

@@ -12,6 +12,7 @@ local function on_frame_platformer()
   then
     inp_playback_ended = true
     inp_end_frame = frame_count
+    finalize_session("SESSION ENDED")
     return
   end
   if inp_playback_ended then
@@ -126,6 +127,19 @@ local function on_frame_platformer()
       )
       next_score_milestone = next_score_milestone + 100000
     end
+  end
+
+  -- RECORDED LIVES TRACKING
+  if gameplay_started then
+    local current_lives = read_byte(config.addresses.lives)
+    if not starting_lives then
+      starting_lives = current_lives
+      prev_lives_for_earn = current_lives
+    end
+    if prev_lives_for_earn and current_lives > prev_lives_for_earn then
+      earned_lives = earned_lives + (current_lives - prev_lives_for_earn)
+    end
+    prev_lives_for_earn = current_lives
   end
 
   -- SPEEDRUN START: First position change (memory leads visual by 1 frame)
@@ -326,47 +340,7 @@ local function on_frame_platformer()
     and prev_game_mode ~= config.modes.game_over
     and not game_over_processed
   then
-    local current_score = read_score_with_rollover_check()
-
-    game_over_processed = true
-
-    -- Capture end frame for duration calculation
-    if not end_frame then
-      end_frame = frame_count - 1
-    end
-
-    -- Capture VRAM-based game over timing
-    if not game_over_vram_frame then
-      local vram_tile = read_byte(config.addresses.game_over_vram)
-      if vram_tile == 0x17 then
-        game_over_vram_frame = frame_count
-        if start_frame then
-          local go_dur = game_over_vram_frame - start_frame
-          print(
-            string.format(
-              "  [Timing] Standard Game End: Frame %s (%s frames - %s)",
-              format_number(game_over_vram_frame),
-              format_number(go_dur),
-              format_duration(go_dur)
-            )
-          )
-        end
-      end
-    end
-
-    -- Only record final level total if NOT on killscreen death
-    local is_killscreen = (current_level_being_played == 22 and level_position[22] == 1)
-
-    if current_level_being_played > 0 and (is_killscreen or last_stage_was_completed) then
-      record_level_total(current_level_being_played, level_score_accumulated, current_score)
-    end
-
-    print_platformer_summary("GAME OVER", current_score)
-    export_csv()
-    export_json()
-    export_text()
-    print("") -- Blank line after exports to separate from WolfMAME messages
-    prev_score = current_score
+    finalize_session("GAME OVER")
   end
 
   -- Update previous state
@@ -389,6 +363,7 @@ local function on_frame_dkong3()
   then
     inp_playback_ended = true
     inp_end_frame = frame_count
+    finalize_session("SESSION ENDED")
     return
   end
   if inp_playback_ended then
@@ -544,6 +519,19 @@ local function on_frame_dkong3()
     end
   end
 
+  -- RECORDED LIVES TRACKING
+  if gameplay_started then
+    local current_lives = read_byte(config.addresses.lives)
+    if not starting_lives then
+      starting_lives = current_lives
+      prev_lives_for_earn = current_lives
+    end
+    if prev_lives_for_earn and current_lives > prev_lives_for_earn then
+      earned_lives = earned_lives + (current_lives - prev_lives_for_earn)
+    end
+    prev_lives_for_earn = current_lives
+  end
+
   -- SPEEDRUN START: Deferred for DK3 (no established speedrun category)
   -- Requires button press detection in addition to position change
 
@@ -630,40 +618,7 @@ local function on_frame_dkong3()
     and dk3_prev_game_mode ~= config.modes.game_over_2
     and not game_over_processed
   then
-    local current_score = read_score_with_rollover_check()
-
-    game_over_processed = true
-
-    -- Capture end frame for duration calculation
-    if not end_frame then
-      end_frame = frame_count - 1
-    end
-
-    -- Capture VRAM-based game over timing
-    if not game_over_vram_frame then
-      local vram_tile = read_byte(config.addresses.game_over_vram)
-      if vram_tile == 0x17 then
-        game_over_vram_frame = frame_count
-        if start_frame then
-          local go_dur = game_over_vram_frame - start_frame
-          print(
-            string.format(
-              "  [Timing] Standard Game End: Frame %s (%s frames - %s)",
-              format_number(game_over_vram_frame),
-              format_number(go_dur),
-              format_duration(go_dur)
-            )
-          )
-        end
-      end
-    end
-
-    print_dk3_summary("GAME OVER", current_score)
-    export_csv()
-    export_json()
-    export_text()
-    print("") -- Blank line after exports to separate from WolfMAME messages
-    prev_score = current_score
+    finalize_session("GAME OVER")
   end
 
   -- Update previous state
