@@ -205,6 +205,18 @@ local function print_dk3_summary(header_text, current_score)
 
   print(string.format("\n=== %s ===", header_text))
   print(string.format("Final Score: %s", format_number(current_score)))
+
+  -- 5 Lives Score (headline stat, shown directly under Final Score)
+  local life_stats = calculate_dk3_life_stats()
+  if
+    life_stats
+    and life_stats.five_lives_score
+    and game_variation
+    and not game_variation:match("5 Lives")
+  then
+    print(string.format("5 Lives Score: %s", format_number(life_stats.five_lives_score)))
+  end
+
   if final_board ~= "" then
     print(string.format("Final Board: %s", final_board))
   end
@@ -247,19 +259,6 @@ local function print_dk3_summary(header_text, current_score)
         )
       end
     end
-  end
-
-  -- Life statistics
-  local life_stats = calculate_dk3_life_stats()
-
-  -- 5 Lives Score (headline stat, shown before life details)
-  if
-    life_stats
-    and life_stats.five_lives_score
-    and game_variation
-    and not game_variation:match("5 Lives")
-  then
-    print(string.format("5 Lives Score: %s", format_number(life_stats.five_lives_score)))
   end
 
   -- Per-life detail statistics
@@ -488,7 +487,7 @@ local function finalize_session(reason)
     if inp_end_frame then
       s.end_frame = inp_end_frame
     else
-      s.end_frame = frame_count - 1
+      s.end_frame = frame_count
     end
   end
 

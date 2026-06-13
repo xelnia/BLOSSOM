@@ -1853,7 +1853,8 @@ local function export_json()
     local screen_avg_pairs = {}
     for _, i in ipairs(display_order) do
       if #s.screen_scores[i] > 0 then
-        local best_score, best_labels, worst_score, worst_labels = find_best_worst(s.screen_scores[i])
+        local best_score, best_labels, worst_score, worst_labels =
+          find_best_worst(s.screen_scores[i])
         local avg = s.screen_sum[i] / s.screen_count[i]
         local type_name = get_screen_type_name(i):lower()
         table.insert(screen_avg_pairs, {
@@ -2160,13 +2161,10 @@ local function export_text()
     -- SCORING SUMMARY
     file:write("\nSCORING SUMMARY\n")
     file:write(string.format("Final Score: %s\n", format_number(s.prev_score)))
-    if final_board ~= "" then
-      file:write(string.format("Final Board: %s\n", final_board))
-    end
 
     local life_stats = calculate_dk3_life_stats()
 
-    -- 5 Lives Score (headline stat)
+    -- 5 Lives Score (headline stat, shown directly under Final Score)
     if
       life_stats
       and life_stats.five_lives_score
@@ -2174,6 +2172,10 @@ local function export_text()
       and not game_variation:match("5 Lives")
     then
       file:write(string.format("5 Lives Score: %s\n", format_number(life_stats.five_lives_score)))
+    end
+
+    if final_board ~= "" then
+      file:write(string.format("Final Board: %s\n", final_board))
     end
 
     -- RBS milestones (score data)
@@ -2522,7 +2524,8 @@ local function export_text()
 
     for _, i in ipairs(display_order) do
       if #s.screen_scores[i] > 0 then
-        local best_score, best_labels, worst_score, worst_labels = find_best_worst(s.screen_scores[i])
+        local best_score, best_labels, worst_score, worst_labels =
+          find_best_worst(s.screen_scores[i])
         local avg = s.screen_sum[i] / s.screen_count[i]
         file:write(
           string.format(
@@ -2956,6 +2959,18 @@ local function print_dk3_summary(header_text, current_score)
 
   print(string.format("\n=== %s ===", header_text))
   print(string.format("Final Score: %s", format_number(current_score)))
+
+  -- 5 Lives Score (headline stat, shown directly under Final Score)
+  local life_stats = calculate_dk3_life_stats()
+  if
+    life_stats
+    and life_stats.five_lives_score
+    and game_variation
+    and not game_variation:match("5 Lives")
+  then
+    print(string.format("5 Lives Score: %s", format_number(life_stats.five_lives_score)))
+  end
+
   if final_board ~= "" then
     print(string.format("Final Board: %s", final_board))
   end
@@ -2998,19 +3013,6 @@ local function print_dk3_summary(header_text, current_score)
         )
       end
     end
-  end
-
-  -- Life statistics
-  local life_stats = calculate_dk3_life_stats()
-
-  -- 5 Lives Score (headline stat, shown before life details)
-  if
-    life_stats
-    and life_stats.five_lives_score
-    and game_variation
-    and not game_variation:match("5 Lives")
-  then
-    print(string.format("5 Lives Score: %s", format_number(life_stats.five_lives_score)))
   end
 
   -- Per-life detail statistics
@@ -3239,7 +3241,7 @@ local function finalize_session(reason)
     if inp_end_frame then
       s.end_frame = inp_end_frame
     else
-      s.end_frame = frame_count - 1
+      s.end_frame = frame_count
     end
   end
 
@@ -3342,10 +3344,11 @@ local function on_frame_platformer()
     and mame_options.entries["playback"]:value() == ""
   then
     inp_playback_ended = true
-    inp_end_frame = frame_count
+    inp_end_frame = frame_count + start_frame_offset
     finalize_session("SESSION ENDED")
     return
   end
+
   if inp_playback_ended then
     return
   end
@@ -3362,7 +3365,11 @@ local function on_frame_platformer()
   -- Mirrors DK3 settlement at on_frame_dkong3() and stop callback in 11_init.lua
   -- Score may update 1+ frames after mode changes to DEAD, so we wait
   -- for the score to settle before recording the death entry
-  if s.death_pending and s.prev_game_mode == config.modes.dead and game_mode ~= config.modes.dead then
+  if
+    s.death_pending
+    and s.prev_game_mode == config.modes.dead
+    and game_mode ~= config.modes.dead
+  then
     local current_score = read_score_with_rollover_check()
     s.death_count = s.death_count + 1
     local score_earned = current_score - s.stage_start_score
@@ -3435,9 +3442,10 @@ local function on_frame_platformer()
   if s.gameplay_started then
     local current_score = read_score_with_rollover_check()
     while current_score >= s.next_score_milestone do
+      local milestone_frame = frame_count + 1
       table.insert(s.score_milestones, {
         score = s.next_score_milestone,
-        frame = frame_count,
+        frame = milestone_frame,
         stage = get_stage_name(s.prev_level, s.level_position[s.prev_level] or 0),
         screen_num = s.current_screen_num,
         bonus_timer = read_bonus_timer(),
@@ -3445,13 +3453,13 @@ local function on_frame_platformer()
       })
       local ms_time_str = ""
       if s.start_frame then
-        ms_time_str = string.format(" - %s", format_duration(frame_count - s.start_frame))
+        ms_time_str = string.format(" - %s", format_duration(milestone_frame - s.start_frame))
       end
       print(
         string.format(
           "  *** %s Milestone (Frame %s%s) ***",
           format_number(s.next_score_milestone),
-          format_number(frame_count),
+          format_number(milestone_frame),
           ms_time_str
         )
       )
@@ -3654,6 +3662,8 @@ local function on_frame_platformer()
     s.death_pending_level = level
     s.death_pending_position = s.level_position[level]
     s.death_pending_bonus = read_bonus_timer()
+    -- Reset clear screen tracking to prevent false speedrun end trigger on reload
+    s.clear_screen_gameplay_seen = false
   end
 
   -- KNOWN EDGE CASE: Simultaneous death + stage completion (platformer)
@@ -3715,10 +3725,11 @@ local function on_frame_dkong3()
     and mame_options.entries["playback"]:value() == ""
   then
     inp_playback_ended = true
-    inp_end_frame = frame_count
+    inp_end_frame = frame_count + start_frame_offset
     finalize_session("SESSION ENDED")
     return
   end
+
   if inp_playback_ended then
     return
   end
@@ -3845,9 +3856,10 @@ local function on_frame_dkong3()
   if s.gameplay_started then
     local current_score = read_score_with_rollover_check()
     while current_score >= s.next_score_milestone do
+      local milestone_frame = frame_count + 1
       table.insert(s.score_milestones, {
         score = s.next_score_milestone,
-        frame = frame_count,
+        frame = milestone_frame,
         board = s.dk3_actual_board_num + 1,
         screen_num = s.current_screen_num,
         bonus_timer = read_bonus_timer(),
@@ -3855,13 +3867,13 @@ local function on_frame_dkong3()
       })
       local ms_time_str = ""
       if s.start_frame then
-        ms_time_str = string.format(" - %s", format_duration(frame_count - s.start_frame))
+        ms_time_str = string.format(" - %s", format_duration(milestone_frame - s.start_frame))
       end
       print(
         string.format(
           "  *** %s Milestone (Frame %s%s) ***",
           format_number(s.next_score_milestone),
-          format_number(frame_count),
+          format_number(milestone_frame),
           ms_time_str
         )
       )

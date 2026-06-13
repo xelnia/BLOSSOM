@@ -333,7 +333,8 @@ local function export_json()
     local screen_avg_pairs = {}
     for _, i in ipairs(display_order) do
       if #s.screen_scores[i] > 0 then
-        local best_score, best_labels, worst_score, worst_labels = find_best_worst(s.screen_scores[i])
+        local best_score, best_labels, worst_score, worst_labels =
+          find_best_worst(s.screen_scores[i])
         local avg = s.screen_sum[i] / s.screen_count[i]
         local type_name = get_screen_type_name(i):lower()
         table.insert(screen_avg_pairs, {
@@ -640,13 +641,10 @@ local function export_text()
     -- SCORING SUMMARY
     file:write("\nSCORING SUMMARY\n")
     file:write(string.format("Final Score: %s\n", format_number(s.prev_score)))
-    if final_board ~= "" then
-      file:write(string.format("Final Board: %s\n", final_board))
-    end
 
     local life_stats = calculate_dk3_life_stats()
 
-    -- 5 Lives Score (headline stat)
+    -- 5 Lives Score (headline stat, shown directly under Final Score)
     if
       life_stats
       and life_stats.five_lives_score
@@ -654,6 +652,10 @@ local function export_text()
       and not game_variation:match("5 Lives")
     then
       file:write(string.format("5 Lives Score: %s\n", format_number(life_stats.five_lives_score)))
+    end
+
+    if final_board ~= "" then
+      file:write(string.format("Final Board: %s\n", final_board))
     end
 
     -- RBS milestones (score data)
@@ -1002,7 +1004,8 @@ local function export_text()
 
     for _, i in ipairs(display_order) do
       if #s.screen_scores[i] > 0 then
-        local best_score, best_labels, worst_score, worst_labels = find_best_worst(s.screen_scores[i])
+        local best_score, best_labels, worst_score, worst_labels =
+          find_best_worst(s.screen_scores[i])
         local avg = s.screen_sum[i] / s.screen_count[i]
         file:write(
           string.format(
