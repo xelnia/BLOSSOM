@@ -1100,14 +1100,16 @@ local function record_board_dk3(
         total_score = total_score,
         start_phase_score = start_phase_score,
         frame = frame_count,
+        lives = lives_remaining,
       })
 
       print(
         string.format(
-          "\n>>> MAX DIFFICULTY REACHED <<< | Start Phase %d Score: %s | Total Score: %s\n",
+          "\n>>> MAX DIFFICULTY REACHED <<< | Start Phase %d Score: %s | Total Score: %s | Lives: %d\n",
           s.dk3_max_diff_count,
           format_number(start_phase_score),
-          format_number(total_score)
+          format_number(total_score),
+          lives_remaining
         )
       )
     end
@@ -1131,15 +1133,17 @@ local function record_board_dk3(
       total_score = total_score,
       rbs_score = rbs_score,
       frame = frame_count,
+      lives = lives_remaining,
     })
 
     print(
       string.format(
-        "\n>>> REPETITIVE BLUE SCREEN %d REACHED <<< | RBS %d Score: %s | Total Score: %s\n",
+        "\n>>> REPETITIVE BLUE SCREEN %d REACHED <<< | RBS %d Score: %s | Total Score: %s | Lives: %d\n",
         s.dk3_rbs_count,
         s.dk3_rbs_count,
         format_number(rbs_score),
-        format_number(total_score)
+        format_number(total_score),
+        lives_remaining
       )
     )
   end
@@ -1155,15 +1159,17 @@ local function record_board_dk3(
       total_score = total_score,
       loop_score = loop_score,
       frame = frame_count,
+      lives = lives_remaining,
     })
 
     print(
       string.format(
-        "\n>>> LOOP %d COMPLETE | LOOP %d Score: %s | Total Score: %s <<<\n",
+        "\n>>> LOOP %d COMPLETE | LOOP %d Score: %s | Total Score: %s | Lives: %d <<<\n",
         loop_num,
         loop_num,
         format_number(loop_score),
-        format_number(total_score)
+        format_number(total_score),
+        lives_remaining
       )
     )
 
@@ -1744,6 +1750,21 @@ local function export_json()
       end
     end
 
+    -- Max difficulty milestones (score data)
+    local max_diff_score_array = {}
+    for _, md in ipairs(s.dk3_max_diff_milestones) do
+      table.insert(
+        max_diff_score_array,
+        json_ordered({
+          { "max_diff_num", md.count },
+          { "total_score", md.total_score },
+          { "start_phase_score", md.start_phase_score },
+          { "lives", md.lives },
+        })
+      )
+    end
+    table.insert(scoring_pairs, { "max_diff_milestones", max_diff_score_array })
+
     -- RBS milestones (score data)
     local rbs_score_array = {}
     for _, rbs in ipairs(s.dk3_rbs_milestones) do
@@ -1753,6 +1774,7 @@ local function export_json()
           { "rbs_num", rbs.rbs_num },
           { "total_score", rbs.total_score },
           { "rbs_score", rbs.rbs_score },
+          { "lives", rbs.lives },
         })
       )
     end
@@ -1767,6 +1789,7 @@ local function export_json()
           { "loop_num", loop.loop_num },
           { "total_score", loop.total_score },
           { "loop_score", loop.loop_score },
+          { "lives", loop.lives },
         })
       )
     end
@@ -2028,6 +2051,7 @@ local function export_json()
     end
     table.insert(ms_pairs, { "screen_num", ms.screen_num })
     table.insert(ms_pairs, { "bonus_timer", ms.bonus_timer })
+    table.insert(ms_pairs, { "lives", ms.lives })
     table.insert(ms_pairs, { "during_gameplay", ms.during_gameplay })
     table.insert(milestones_array, json_ordered(ms_pairs))
   end
@@ -2050,7 +2074,6 @@ local function export_json()
       table.insert(death_pairs, { "screen_type", stage.screen_type })
       table.insert(death_pairs, { "death_points", stage.score_earned })
       table.insert(death_pairs, { "running_total", stage.total_score })
-      table.insert(death_pairs, { "lives", stage.lives or 0 })
       table.insert(death_pairs, { "bonus_timer", stage.bonus_timer })
       table.insert(deaths_array, json_ordered(death_pairs))
     end
@@ -2159,7 +2182,7 @@ local function export_text()
     file:write(string.format("BLOSSOM version: %s\n", BLOSSOM_VERSION))
 
     -- SCORING SUMMARY
-    file:write("\nSCORING SUMMARY\n")
+    file:write("\nSCORING SUMMARY\n---------------\n")
     file:write(string.format("Final Score: %s\n", format_number(s.prev_score)))
 
     local life_stats = calculate_dk3_life_stats()
@@ -2178,26 +2201,44 @@ local function export_text()
       file:write(string.format("Final Board: %s\n", final_board))
     end
 
-    -- RBS milestones (score data)
-    for _, rbs in ipairs(s.dk3_rbs_milestones) do
+    -- Max difficulty milestones (score data)
+    for _, md in ipairs(s.dk3_max_diff_milestones) do
+      local lives_str = md.lives and string.format(" | Lives: %d", md.lives) or ""
       file:write(
         string.format(
-          "RBS %d Score: %s (%s)\n",
+          "Start Phase %d Score: %s (%s)%s\n",
+          md.count,
+          format_number(md.total_score),
+          format_number(md.start_phase_score),
+          lives_str
+        )
+      )
+    end
+
+    -- RBS milestones (score data)
+    for _, rbs in ipairs(s.dk3_rbs_milestones) do
+      local lives_str = rbs.lives and string.format(" | Lives: %d", rbs.lives) or ""
+      file:write(
+        string.format(
+          "RBS %d Score: %s (%s)%s\n",
           rbs.rbs_num,
           format_number(rbs.total_score),
-          format_number(rbs.rbs_score)
+          format_number(rbs.rbs_score),
+          lives_str
         )
       )
     end
 
     -- Loop milestones (score data)
     for _, loop in ipairs(s.dk3_loop_milestones) do
+      local lives_str = loop.lives and string.format(" | Lives: %d", loop.lives) or ""
       file:write(
         string.format(
-          "Loop %d Score: %s (%s)\n",
+          "Loop %d Score: %s (%s)%s\n",
           loop.loop_num,
           format_number(loop.total_score),
-          format_number(loop.loop_score)
+          format_number(loop.loop_score),
+          lives_str
         )
       )
     end
@@ -2309,7 +2350,7 @@ local function export_text()
       or (s.start_frame and (s.game_over_vram_frame or s.end_frame))
 
     if has_dk3_timing then
-      file:write("\nTIMING SUMMARY\n")
+      file:write("\nTIMING SUMMARY\n--------------\n")
     end
 
     -- DK3 milestone timing
@@ -2375,7 +2416,7 @@ local function export_text()
 
     -- SCORE MILESTONES
     if #s.score_milestones > 0 then
-      file:write("\nSCORE MILESTONES\n")
+      file:write("\nSCORE MILESTONES\n----------------\n")
       for _, ms in ipairs(s.score_milestones) do
         local time_str = ""
         if s.start_frame then
@@ -2385,25 +2426,27 @@ local function export_text()
         local timer_str = ms.bonus_timer
             and string.format(" | Timer: %s", format_number(ms.bonus_timer))
           or ""
+        local lives_str = ms.lives and string.format(" | Lives: %d", ms.lives) or ""
         local phase_str = ""
         if ms.during_gameplay == false then
           phase_str = " [stage end]"
         end
         file:write(
           string.format(
-            "%s (Frame %s%s)%s%s%s\n",
+            "%s (Frame %s%s)%s%s%s%s\n",
             format_number(ms.score),
             format_number(ms.frame),
             time_str,
             board_str,
             timer_str,
+            lives_str,
             phase_str
           )
         )
       end
     end
 
-    file:write("\n===================================\n\nSTAGE DATA\n")
+    file:write("\n===================================\n\nSTAGE DATA\n----------\n")
 
     -- Board data
     for _, board in ipairs(s.stage_data) do
@@ -2466,7 +2509,7 @@ local function export_text()
     file:write(string.format("BLOSSOM version: %s\n", BLOSSOM_VERSION))
 
     -- SCORING SUMMARY
-    file:write("\nSCORING SUMMARY\n")
+    file:write("\nSCORING SUMMARY\n---------------\n")
     file:write(string.format("Final Score: %s\n", format_number(s.prev_score)))
     if final_stage ~= "" then
       file:write(string.format("Final Stage: %s\n", final_stage))
@@ -2586,7 +2629,7 @@ local function export_text()
       or (s.start_frame and (s.game_over_vram_frame or s.end_frame))
 
     if has_plat_timing then
-      file:write("\nTIMING SUMMARY\n")
+      file:write("\nTIMING SUMMARY\n--------------\n")
     end
 
     -- Unofficial times (guaranteed: full game time; conditional: start, killscreen)
@@ -2666,7 +2709,7 @@ local function export_text()
 
     -- SCORE MILESTONES
     if #s.score_milestones > 0 then
-      file:write("\nSCORE MILESTONES\n")
+      file:write("\nSCORE MILESTONES\n----------------\n")
       for _, ms in ipairs(s.score_milestones) do
         local time_str = ""
         if s.start_frame then
@@ -2676,25 +2719,27 @@ local function export_text()
         local timer_str = ms.bonus_timer
             and string.format(" | Timer: %s", format_number(ms.bonus_timer))
           or ""
+        local lives_str = ms.lives and string.format(" | Lives: %d", ms.lives) or ""
         local phase_str = ""
         if ms.during_gameplay == false then
           phase_str = " [stage end]"
         end
         file:write(
           string.format(
-            "%s (Frame %s%s)%s%s%s\n",
+            "%s (Frame %s%s)%s%s%s%s\n",
             format_number(ms.score),
             format_number(ms.frame),
             time_str,
             stage_str,
             timer_str,
+            lives_str,
             phase_str
           )
         )
       end
     end
 
-    file:write("\n===================================\n\nSTAGE DATA\n")
+    file:write("\n===================================\n\nSTAGE DATA\n----------\n")
 
     -- Per-stage data (unchanged from current format)
     local current_output_level = nil
@@ -2975,26 +3020,44 @@ local function print_dk3_summary(header_text, current_score)
     print(string.format("Final Board: %s", final_board))
   end
 
-  -- Display RBS milestones
-  for _, rbs in ipairs(s.dk3_rbs_milestones) do
+  -- Display Max Difficulty milestones
+  for _, md in ipairs(s.dk3_max_diff_milestones) do
+    local lives_str = md.lives and string.format(" | Lives: %d", md.lives) or ""
     print(
       string.format(
-        "RBS %d Score: %s (%s)",
+        "Start Phase %d Score: %s (%s)%s",
+        md.count,
+        format_number(md.total_score),
+        format_number(md.start_phase_score),
+        lives_str
+      )
+    )
+  end
+
+  -- Display RBS milestones
+  for _, rbs in ipairs(s.dk3_rbs_milestones) do
+    local lives_str = rbs.lives and string.format(" | Lives: %d", rbs.lives) or ""
+    print(
+      string.format(
+        "RBS %d Score: %s (%s)%s",
         rbs.rbs_num,
         format_number(rbs.total_score),
-        format_number(rbs.rbs_score)
+        format_number(rbs.rbs_score),
+        lives_str
       )
     )
   end
 
   -- Display Loop milestones
   for _, loop in ipairs(s.dk3_loop_milestones) do
+    local lives_str = loop.lives and string.format(" | Lives: %d", loop.lives) or ""
     print(
       string.format(
-        "Loop %d Score: %s (%s)",
+        "Loop %d Score: %s (%s)%s",
         loop.loop_num,
         format_number(loop.total_score),
-        format_number(loop.loop_score)
+        format_number(loop.loop_score),
+        lives_str
       )
     )
   end
@@ -3449,6 +3512,7 @@ local function on_frame_platformer()
         stage = get_stage_name(s.prev_level, s.level_position[s.prev_level] or 0),
         screen_num = s.current_screen_num,
         bonus_timer = read_bonus_timer(),
+        lives = read_byte(config.addresses.lives),
         during_gameplay = (game_mode == config.modes.gameplay),
       })
       local ms_time_str = ""
@@ -3457,10 +3521,11 @@ local function on_frame_platformer()
       end
       print(
         string.format(
-          "  *** %s Milestone (Frame %s%s) ***",
+          "  *** %s Milestone (Frame %s%s | Lives: %d) ***",
           format_number(s.next_score_milestone),
           format_number(milestone_frame),
-          ms_time_str
+          ms_time_str,
+          read_byte(config.addresses.lives)
         )
       )
       s.next_score_milestone = s.next_score_milestone + 100000
@@ -3863,6 +3928,7 @@ local function on_frame_dkong3()
         board = s.dk3_actual_board_num + 1,
         screen_num = s.current_screen_num,
         bonus_timer = read_bonus_timer(),
+        lives = read_byte(config.addresses.lives),
         during_gameplay = (game_mode == config.modes.gameplay),
       })
       local ms_time_str = ""
@@ -3871,10 +3937,11 @@ local function on_frame_dkong3()
       end
       print(
         string.format(
-          "  *** %s Milestone (Frame %s%s) ***",
+          "  *** %s Milestone (Frame %s%s | Lives: %d) ***",
           format_number(s.next_score_milestone),
           format_number(milestone_frame),
-          ms_time_str
+          ms_time_str,
+          read_byte(config.addresses.lives)
         )
       )
       s.next_score_milestone = s.next_score_milestone + 100000

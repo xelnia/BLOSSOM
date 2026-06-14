@@ -116,6 +116,7 @@ local function on_frame_platformer()
         stage = get_stage_name(s.prev_level, s.level_position[s.prev_level] or 0),
         screen_num = s.current_screen_num,
         bonus_timer = read_bonus_timer(),
+        lives = read_byte(config.addresses.lives),
         during_gameplay = (game_mode == config.modes.gameplay),
       })
       local ms_time_str = ""
@@ -124,10 +125,11 @@ local function on_frame_platformer()
       end
       print(
         string.format(
-          "  *** %s Milestone (Frame %s%s) ***",
+          "  *** %s Milestone (Frame %s%s | Lives: %d) ***",
           format_number(s.next_score_milestone),
           format_number(milestone_frame),
-          ms_time_str
+          ms_time_str,
+          read_byte(config.addresses.lives)
         )
       )
       s.next_score_milestone = s.next_score_milestone + 100000
@@ -530,6 +532,7 @@ local function on_frame_dkong3()
         board = s.dk3_actual_board_num + 1,
         screen_num = s.current_screen_num,
         bonus_timer = read_bonus_timer(),
+        lives = read_byte(config.addresses.lives),
         during_gameplay = (game_mode == config.modes.gameplay),
       })
       local ms_time_str = ""
@@ -538,10 +541,11 @@ local function on_frame_dkong3()
       end
       print(
         string.format(
-          "  *** %s Milestone (Frame %s%s) ***",
+          "  *** %s Milestone (Frame %s%s | Lives: %d) ***",
           format_number(s.next_score_milestone),
           format_number(milestone_frame),
-          ms_time_str
+          ms_time_str,
+          read_byte(config.addresses.lives)
         )
       )
       s.next_score_milestone = s.next_score_milestone + 100000

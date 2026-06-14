@@ -221,26 +221,44 @@ local function print_dk3_summary(header_text, current_score)
     print(string.format("Final Board: %s", final_board))
   end
 
-  -- Display RBS milestones
-  for _, rbs in ipairs(s.dk3_rbs_milestones) do
+  -- Display Max Difficulty milestones
+  for _, md in ipairs(s.dk3_max_diff_milestones) do
+    local lives_str = md.lives and string.format(" | Lives: %d", md.lives) or ""
     print(
       string.format(
-        "RBS %d Score: %s (%s)",
+        "Start Phase %d Score: %s (%s)%s",
+        md.count,
+        format_number(md.total_score),
+        format_number(md.start_phase_score),
+        lives_str
+      )
+    )
+  end
+
+  -- Display RBS milestones
+  for _, rbs in ipairs(s.dk3_rbs_milestones) do
+    local lives_str = rbs.lives and string.format(" | Lives: %d", rbs.lives) or ""
+    print(
+      string.format(
+        "RBS %d Score: %s (%s)%s",
         rbs.rbs_num,
         format_number(rbs.total_score),
-        format_number(rbs.rbs_score)
+        format_number(rbs.rbs_score),
+        lives_str
       )
     )
   end
 
   -- Display Loop milestones
   for _, loop in ipairs(s.dk3_loop_milestones) do
+    local lives_str = loop.lives and string.format(" | Lives: %d", loop.lives) or ""
     print(
       string.format(
-        "Loop %d Score: %s (%s)",
+        "Loop %d Score: %s (%s)%s",
         loop.loop_num,
         format_number(loop.total_score),
-        format_number(loop.loop_score)
+        format_number(loop.loop_score),
+        lives_str
       )
     )
   end

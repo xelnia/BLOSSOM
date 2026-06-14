@@ -103,14 +103,16 @@ local function record_board_dk3(
         total_score = total_score,
         start_phase_score = start_phase_score,
         frame = frame_count,
+        lives = lives_remaining,
       })
 
       print(
         string.format(
-          "\n>>> MAX DIFFICULTY REACHED <<< | Start Phase %d Score: %s | Total Score: %s\n",
+          "\n>>> MAX DIFFICULTY REACHED <<< | Start Phase %d Score: %s | Total Score: %s | Lives: %d\n",
           s.dk3_max_diff_count,
           format_number(start_phase_score),
-          format_number(total_score)
+          format_number(total_score),
+          lives_remaining
         )
       )
     end
@@ -134,15 +136,17 @@ local function record_board_dk3(
       total_score = total_score,
       rbs_score = rbs_score,
       frame = frame_count,
+      lives = lives_remaining,
     })
 
     print(
       string.format(
-        "\n>>> REPETITIVE BLUE SCREEN %d REACHED <<< | RBS %d Score: %s | Total Score: %s\n",
+        "\n>>> REPETITIVE BLUE SCREEN %d REACHED <<< | RBS %d Score: %s | Total Score: %s | Lives: %d\n",
         s.dk3_rbs_count,
         s.dk3_rbs_count,
         format_number(rbs_score),
-        format_number(total_score)
+        format_number(total_score),
+        lives_remaining
       )
     )
   end
@@ -158,15 +162,17 @@ local function record_board_dk3(
       total_score = total_score,
       loop_score = loop_score,
       frame = frame_count,
+      lives = lives_remaining,
     })
 
     print(
       string.format(
-        "\n>>> LOOP %d COMPLETE | LOOP %d Score: %s | Total Score: %s <<<\n",
+        "\n>>> LOOP %d COMPLETE | LOOP %d Score: %s | Total Score: %s | Lives: %d <<<\n",
         loop_num,
         loop_num,
         format_number(loop_score),
-        format_number(total_score)
+        format_number(total_score),
+        lives_remaining
       )
     )
 
