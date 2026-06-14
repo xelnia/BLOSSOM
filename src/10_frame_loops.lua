@@ -56,6 +56,23 @@ local function on_frame_platformer()
       s.death_pending_bonus
     )
 
+    -- Record life performance
+    local stages_completed = s.stages_completed_count - s.current_life_start_stage_count
+    if stages_completed < 0 then
+      stages_completed = 0
+    end
+
+    table.insert(s.life_tracking, {
+      life_num = s.death_count,
+      start_score = s.current_life_start_score,
+      end_score = current_score,
+      start_stage_index = s.current_life_start_stage_count,
+      stages_completed = stages_completed,
+    })
+
+    s.current_life_start_score = current_score
+    s.current_life_start_stage_count = s.stages_completed_count
+
     s.last_stage_was_completed = false
     s.stage_start_score = current_score
     s.prev_score = current_score

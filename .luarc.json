@@ -67,6 +67,7 @@
     "record_level_total",
     "find_best_worst",
     "calculate_dk3_life_stats",
+    "calculate_life_stats",
 
     "export_csv",
     "export_json",

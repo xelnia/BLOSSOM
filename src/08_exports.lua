@@ -304,8 +304,8 @@ local function export_json()
             { "life_nums", life_stats.shortest_life_boards.life_nums },
           }),
         },
-        { "avg_points", math.floor(life_stats.avg_points) },
-        { "avg_boards", math.floor(life_stats.avg_boards) },
+        { "avg_points", life_stats.avg_points },
+        { "avg_boards", life_stats.avg_boards },
       }
       table.insert(scoring_pairs, { "life_stats", json_ordered(life_pairs) })
     end
@@ -386,6 +386,46 @@ local function export_json()
           { "count", s.level_count },
         }),
       })
+    end
+
+    -- Life statistics
+    local life_stats = calculate_life_stats()
+    if life_stats then
+      local life_pairs = {
+        { "first_life_score", life_stats.first_life_score },
+        { "last_life_score", life_stats.last_life_score },
+        {
+          "longest_life_points",
+          json_ordered({
+            { "score", life_stats.longest_life_points.score },
+            { "life_nums", life_stats.longest_life_points.life_nums },
+          }),
+        },
+        {
+          "longest_life_stages",
+          json_ordered({
+            { "stages", life_stats.longest_life_stages.stages },
+            { "life_nums", life_stats.longest_life_stages.life_nums },
+          }),
+        },
+        {
+          "shortest_life_points",
+          json_ordered({
+            { "score", life_stats.shortest_life_points.score },
+            { "life_nums", life_stats.shortest_life_points.life_nums },
+          }),
+        },
+        {
+          "shortest_life_stages",
+          json_ordered({
+            { "stages", life_stats.shortest_life_stages.stages },
+            { "life_nums", life_stats.shortest_life_stages.life_nums },
+          }),
+        },
+        { "avg_points", life_stats.avg_points },
+        { "avg_stages", life_stats.avg_stages },
+      }
+      table.insert(scoring_pairs, { "life_stats", json_ordered(life_pairs) })
     end
   end
 
@@ -785,12 +825,11 @@ local function export_text()
       )
 
       file:write(
-        string.format(
-          "Average Life (points): %s\n",
-          format_number(math.floor(life_stats.avg_points))
-        )
+        string.format("Average Life (points): %s\n", format_number_decimal(life_stats.avg_points))
       )
-      file:write(string.format("Average Life (boards): %d\n", math.floor(life_stats.avg_boards)))
+      file:write(
+        string.format("Average Life (boards): %s\n", format_number_decimal(life_stats.avg_boards))
+      )
     end
 
     -- Recorded Lives / Deaths / Death Points
@@ -1093,6 +1132,62 @@ local function export_text()
     end
     file:write(string.format("Recorded Deaths: %d\n", s.death_count))
     file:write(string.format("Total Death Points: %s\n", format_number(s.total_death_points)))
+
+    -- Life statistics
+    local life_stats = calculate_life_stats()
+    if life_stats then
+      file:write(
+        string.format("First Life Score: %s\n", format_number(life_stats.first_life_score))
+      )
+      file:write(string.format("Last Life Score: %s\n", format_number(life_stats.last_life_score)))
+
+      local longest_points_str = "#"
+        .. table.concat(life_stats.longest_life_points.life_nums, ", #")
+      file:write(
+        string.format(
+          "Longest Life (points): %s - %s\n",
+          longest_points_str,
+          format_number(life_stats.longest_life_points.score)
+        )
+      )
+
+      local longest_stages_str = "#"
+        .. table.concat(life_stats.longest_life_stages.life_nums, ", #")
+      file:write(
+        string.format(
+          "Longest Life (stages): %s - %d\n",
+          longest_stages_str,
+          life_stats.longest_life_stages.stages
+        )
+      )
+
+      local shortest_points_str = "#"
+        .. table.concat(life_stats.shortest_life_points.life_nums, ", #")
+      file:write(
+        string.format(
+          "Shortest Life (points): %s - %s\n",
+          shortest_points_str,
+          format_number(life_stats.shortest_life_points.score)
+        )
+      )
+
+      local shortest_stages_str = "#"
+        .. table.concat(life_stats.shortest_life_stages.life_nums, ", #")
+      file:write(
+        string.format(
+          "Shortest Life (stages): %s - %d\n",
+          shortest_stages_str,
+          life_stats.shortest_life_stages.stages
+        )
+      )
+
+      file:write(
+        string.format("Average Life (points): %s\n", format_number_decimal(life_stats.avg_points))
+      )
+      file:write(
+        string.format("Average Life (stages): %s\n", format_number_decimal(life_stats.avg_stages))
+      )
+    end
 
     -- TIMING SUMMARY
     local playing_frames = get_playing_time_frames()

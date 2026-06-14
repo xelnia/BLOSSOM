@@ -215,6 +215,11 @@ local function record_stage(
 
   table.insert(s.stage_data, stage_info)
 
+  -- Track completed stages for life statistics (skip death entries)
+  if not is_death then
+    s.stages_completed_count = s.stages_completed_count + 1
+  end
+
   -- Track start phase scores and deaths
   local config = get_config()
   if s.start_score_total == 0 then -- Still in start phase
@@ -523,6 +528,78 @@ local function calculate_dk3_life_stats()
   -- Calculate averages
   stats.avg_points = total_points / stats.total_lives
   stats.avg_boards = total_boards / stats.total_lives
+
+  return stats
+end
+
+local function calculate_life_stats()
+  if #s.life_tracking == 0 then
+    return nil -- No deaths yet
+  end
+
+  local stats = {
+    total_lives = #s.life_tracking,
+    first_life_score = s.life_tracking[1].end_score - s.life_tracking[1].start_score,
+    last_life_score = 0,
+    longest_life_points = { score = 0, life_nums = {} },
+    longest_life_stages = { stages = 0, life_nums = {} },
+    shortest_life_points = { score = math.huge, life_nums = {} },
+    shortest_life_stages = { stages = math.huge, life_nums = {} },
+    avg_points = 0,
+    avg_stages = 0,
+  }
+
+  -- Last life score
+  local last_life = s.life_tracking[#s.life_tracking]
+  stats.last_life_score = last_life.end_score - last_life.start_score
+
+  -- Find longest/shortest lives and calculate totals
+  local total_points = 0
+  local total_stages = 0
+
+  for _, life in ipairs(s.life_tracking) do
+    local life_points = life.end_score - life.start_score
+    local life_stages = life.stages_completed
+
+    total_points = total_points + life_points
+    total_stages = total_stages + life_stages
+
+    -- Longest by points
+    if life_points > stats.longest_life_points.score then
+      stats.longest_life_points.score = life_points
+      stats.longest_life_points.life_nums = { life.life_num }
+    elseif life_points == stats.longest_life_points.score then
+      table.insert(stats.longest_life_points.life_nums, life.life_num)
+    end
+
+    -- Longest by stages
+    if life_stages > stats.longest_life_stages.stages then
+      stats.longest_life_stages.stages = life_stages
+      stats.longest_life_stages.life_nums = { life.life_num }
+    elseif life_stages == stats.longest_life_stages.stages then
+      table.insert(stats.longest_life_stages.life_nums, life.life_num)
+    end
+
+    -- Shortest by points
+    if life_points < stats.shortest_life_points.score then
+      stats.shortest_life_points.score = life_points
+      stats.shortest_life_points.life_nums = { life.life_num }
+    elseif life_points == stats.shortest_life_points.score then
+      table.insert(stats.shortest_life_points.life_nums, life.life_num)
+    end
+
+    -- Shortest by stages
+    if life_stages < stats.shortest_life_stages.stages then
+      stats.shortest_life_stages.stages = life_stages
+      stats.shortest_life_stages.life_nums = { life.life_num }
+    elseif life_stages == stats.shortest_life_stages.stages then
+      table.insert(stats.shortest_life_stages.life_nums, life.life_num)
+    end
+  end
+
+  -- Averages
+  stats.avg_points = total_points / stats.total_lives
+  stats.avg_stages = total_stages / stats.total_lives
 
   return stats
 end

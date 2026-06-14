@@ -103,6 +103,12 @@ local function create_session_state()
     dk3_current_life_start_score = 0,
     dk3_current_life_start_board = 1, -- Game starts on board 1
 
+    -- Platformer life tracking
+    life_tracking = {}, -- Array of {life_num, start_score, end_score, start_stage_index, stages_completed}
+    current_life_start_score = 0,
+    current_life_start_stage_count = 0,
+    stages_completed_count = 0,
+
     -- Deferred death recording for DK3
     -- DK3 uses a separate dead_status address (0x6101) instead of a game_mode value,
     -- so game_mode can re-enter gameplay before dead_status clears.

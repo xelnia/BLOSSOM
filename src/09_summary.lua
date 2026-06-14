@@ -135,6 +135,54 @@ local function print_platformer_summary(header_text, current_score)
   print(string.format("Recorded Deaths: %d", s.death_count))
   print(string.format("Total Death Points: %s", format_number(s.total_death_points)))
 
+  -- Life statistics
+  local life_stats = calculate_life_stats()
+  if life_stats then
+    print(string.format("First Life Score: %s", format_number(life_stats.first_life_score)))
+    print(string.format("Last Life Score: %s", format_number(life_stats.last_life_score)))
+
+    local longest_points_str = "#" .. table.concat(life_stats.longest_life_points.life_nums, ", #")
+    print(
+      string.format(
+        "Longest Life (points): %s - %s",
+        longest_points_str,
+        format_number(life_stats.longest_life_points.score)
+      )
+    )
+
+    local longest_stages_str = "#" .. table.concat(life_stats.longest_life_stages.life_nums, ", #")
+    print(
+      string.format(
+        "Longest Life (stages): %s - %d",
+        longest_stages_str,
+        life_stats.longest_life_stages.stages
+      )
+    )
+
+    local shortest_points_str = "#"
+      .. table.concat(life_stats.shortest_life_points.life_nums, ", #")
+    print(
+      string.format(
+        "Shortest Life (points): %s - %s",
+        shortest_points_str,
+        format_number(life_stats.shortest_life_points.score)
+      )
+    )
+
+    local shortest_stages_str = "#"
+      .. table.concat(life_stats.shortest_life_stages.life_nums, ", #")
+    print(
+      string.format(
+        "Shortest Life (stages): %s - %d",
+        shortest_stages_str,
+        life_stats.shortest_life_stages.stages
+      )
+    )
+
+    print(string.format("Average Life (points): %s", format_number_decimal(life_stats.avg_points)))
+    print(string.format("Average Life (stages): %s", format_number_decimal(life_stats.avg_stages)))
+  end
+
   -- Timing summary (ordered shortest to longest expected duration)
   print("")
 
@@ -328,10 +376,8 @@ local function print_dk3_summary(header_text, current_score)
       )
     )
 
-    print(
-      string.format("Average Life (points): %s", format_number(math.floor(life_stats.avg_points)))
-    )
-    print(string.format("Average Life (boards): %d", math.floor(life_stats.avg_boards)))
+    print(string.format("Average Life (points): %s", format_number_decimal(life_stats.avg_points)))
+    print(string.format("Average Life (boards): %s", format_number_decimal(life_stats.avg_boards)))
   end
 
   -- Recorded Lives / Deaths / Death Points (diagnostic group)

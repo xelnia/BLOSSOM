@@ -68,14 +68,43 @@ def main():
 
     if "--map" in sys.argv:
         _, line_map = build_with_map(source_files)
-        print("Line Range Map:")
-        print(f"{'Source File':<25} {'Lines':>12}  {'Count':>5}")
-        print("-" * 45)
-        for name, start, end, count in line_map:
-            print(f"{name:<25} {start:>5}-{end:<5}  {count:>5}")
         total = sum(count for _, _, _, count in line_map)
-        print("-" * 45)
-        print(f"{'Total':<25} {'':>12}  {total:>5}")
+        separators = len(line_map) - 1
+        final_length = total + separators
+
+        # Compute column widths from data
+        summary_labels = (
+            "Separators (1 between files)",
+            "Total source lines",
+            "Final blossom.lua length",
+        )
+        label_w = max(
+            max(len(name) for name, _, _, _ in line_map),
+            max(len(lbl) for lbl in summary_labels),
+            len("Source File"),
+        )
+        range_w = max(
+            max(len(f"{start}-{end}") for _, start, end, _ in line_map),
+            len("Lines"),
+        )
+        count_w = max(
+            max(len(str(c)) for _, _, _, c in line_map),
+            len(str(final_length)),
+            len("Count"),
+        )
+        total_w = label_w + 1 + range_w + 2 + count_w
+        summary_label_w = label_w + 1 + range_w
+
+        print("Line Range Map:")
+        print(f"{'Source File':<{label_w}} {'Lines':>{range_w}}  {'Count':>{count_w}}")
+        print("-" * total_w)
+        for name, start, end, count in line_map:
+            range_str = f"{start}-{end}"
+            print(f"{name:<{label_w}} {range_str:>{range_w}}  {count:>{count_w}}")
+        print("-" * total_w)
+        print(f"{'Separators (1 between files)':<{summary_label_w}}  {separators:>{count_w}}")
+        print(f"{'Total source lines':<{summary_label_w}}  {total:>{count_w}}")
+        print(f"{'Final blossom.lua length':<{summary_label_w}}  {final_length:>{count_w}}")
         return
 
     output = build(source_files)
