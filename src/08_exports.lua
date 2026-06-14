@@ -530,7 +530,6 @@ local function export_json()
       table.insert(death_pairs, { "screen_type", stage.screen_type })
       table.insert(death_pairs, { "death_points", stage.score_earned })
       table.insert(death_pairs, { "running_total", stage.total_score })
-      table.insert(death_pairs, { "lives", stage.lives or 0 })
       table.insert(death_pairs, { "bonus_timer", stage.bonus_timer })
       table.insert(deaths_array, json_ordered(death_pairs))
     end
