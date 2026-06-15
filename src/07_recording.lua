@@ -388,9 +388,7 @@ local function record_level_total(level, score_earned, total_score)
   end
 
   -- Track level scores for best/worst analysis
-  local config = get_config()
   if level >= config.begin_avg and level <= 21 then
-    local level_display = format_level_for_display(level)
     table.insert(
       s.level_scores,
       { score = score_earned, label = format_level_label(level), level = level }

@@ -20,7 +20,7 @@ end
 local GAME_TYPE = detect_game()
 
 if not GAME_TYPE then
-  error("ERROR: Unsupported game. This script only works with dkong, dkongjr, and ckongpt2")
+  error("ERROR: Unsupported game. This script only works with dkong, dkongjr, ckongpt2, and dkong3")
 end
 
 -- GAME CONFIGURATIONS
@@ -90,6 +90,7 @@ local GAME_CONFIGS = {
     killscreen_level = 22,
     killscreen_stage = 1,
     clear_screen_type = 4, -- Rivet screen
+    level_display_bug = false,
     supports_22_4_pace = false,
     -- INPUT DETECTION
     start_button_bit = 2,
@@ -242,6 +243,7 @@ local GAME_CONFIGS = {
     killscreen_level = 22,
     killscreen_stage = 1,
     clear_screen_type = 4, -- Rivet screen
+    level_display_bug = false,
     supports_22_4_pace = true,
     -- INPUT DETECTION
     start_button_bit = 2,

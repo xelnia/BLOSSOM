@@ -2,7 +2,7 @@
 -- STATE TRACKING
 -- ============================================================================
 
--- PERMANENT STATE — not reset between sessions
+-- PERMANENT STATE - not reset between sessions
 -- frame_count: Raw MAME frame counter, overwritten from read_frame_number() every frame.
 -- Session timing uses start_frame/end_frame deltas, not frame_count resets.
 local frame_count = 0
@@ -10,16 +10,18 @@ local frame_count = 0
 -- game_variation: DIP switch configuration, does not change mid-INP.
 local game_variation = nil -- For DK3 variation detection
 
--- INP playback end detection — one INP, one playback, never reset.
+-- INP playback end detection - one INP, one playback, never reset.
 local inp_playback_active = false -- Set true at startup if INP playback detected
 local inp_playback_ended = false -- Set true when INP playback option goes empty
 local inp_end_frame = nil -- Frame number when INP end was detected
 
--- Multi-session tracking — not reset between sessions
+-- Multi-session tracking - not reset between sessions
 local session_count = 1
+local session_banner_pending = false
+local session_pending_timing_msg = nil
 
 -- ============================================================================
--- PER-SESSION STATE — reset between sessions via reset_session_state()
+-- PER-SESSION STATE - reset between sessions via reset_session_state()
 -- ============================================================================
 
 local function create_session_state()

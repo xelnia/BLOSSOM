@@ -187,6 +187,7 @@ local function on_frame_platformer()
   -- Phase 2: Once gameplay seen, check for rivet=0 (mode may have already left gameplay)
   if
     s.gameplay_started
+    and s.speedrun_start_frame
     and not s.speedrun_end_frame
     and level == config.start_level
     and screen_type == config.clear_screen_type
@@ -235,6 +236,7 @@ local function on_frame_platformer()
   -- Visual death occurs 3 frames after internal trigger
   if
     game_mode == config.modes.gameplay
+    and s.speedrun_start_frame
     and not s.killscreen_frame
     and level == config.killscreen_level
   then
