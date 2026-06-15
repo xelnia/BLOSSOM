@@ -170,7 +170,7 @@ end
 local GAME_TYPE = detect_game()
 
 if not GAME_TYPE then
-  error("ERROR: Unsupported game. This script only works with dkong, dkongjr, and ckongpt2")
+  error("ERROR: Unsupported game. This script only works with dkong, dkongjr, ckongpt2, and dkong3")
 end
 
 -- GAME CONFIGURATIONS
@@ -240,6 +240,7 @@ local GAME_CONFIGS = {
     killscreen_level = 22,
     killscreen_stage = 1,
     clear_screen_type = 4, -- Rivet screen
+    level_display_bug = false,
     supports_22_4_pace = false,
     -- INPUT DETECTION
     start_button_bit = 2,
@@ -392,6 +393,7 @@ local GAME_CONFIGS = {
     killscreen_level = 22,
     killscreen_stage = 1,
     clear_screen_type = 4, -- Rivet screen
+    level_display_bug = false,
     supports_22_4_pace = true,
     -- INPUT DETECTION
     start_button_bit = 2,
@@ -482,7 +484,7 @@ local GAME_CONFIGS = {
 -- STATE TRACKING
 -- ============================================================================
 
--- PERMANENT STATE — not reset between sessions
+-- PERMANENT STATE - not reset between sessions
 -- frame_count: Raw MAME frame counter, overwritten from read_frame_number() every frame.
 -- Session timing uses start_frame/end_frame deltas, not frame_count resets.
 local frame_count = 0
@@ -490,16 +492,18 @@ local frame_count = 0
 -- game_variation: DIP switch configuration, does not change mid-INP.
 local game_variation = nil -- For DK3 variation detection
 
--- INP playback end detection — one INP, one playback, never reset.
+-- INP playback end detection - one INP, one playback, never reset.
 local inp_playback_active = false -- Set true at startup if INP playback detected
 local inp_playback_ended = false -- Set true when INP playback option goes empty
 local inp_end_frame = nil -- Frame number when INP end was detected
 
--- Multi-session tracking — not reset between sessions
+-- Multi-session tracking - not reset between sessions
 local session_count = 1
+local session_banner_pending = false
+local session_pending_timing_msg = nil
 
 -- ============================================================================
--- PER-SESSION STATE — reset between sessions via reset_session_state()
+-- PER-SESSION STATE - reset between sessions via reset_session_state()
 -- ============================================================================
 
 local function create_session_state()
@@ -1401,9 +1405,7 @@ local function record_level_total(level, score_earned, total_score)
   end
 
   -- Track level scores for best/worst analysis
-  local config = get_config()
   if level >= config.begin_avg and level <= 21 then
-    local level_display = format_level_for_display(level)
     table.insert(
       s.level_scores,
       { score = score_earned, label = format_level_label(level), level = level }
@@ -4043,6 +4045,7 @@ local function on_frame_platformer()
   -- Phase 2: Once gameplay seen, check for rivet=0 (mode may have already left gameplay)
   if
     s.gameplay_started
+    and s.speedrun_start_frame
     and not s.speedrun_end_frame
     and level == config.start_level
     and screen_type == config.clear_screen_type
@@ -4091,6 +4094,7 @@ local function on_frame_platformer()
   -- Visual death occurs 3 frames after internal trigger
   if
     game_mode == config.modes.gameplay
+    and s.speedrun_start_frame
     and not s.killscreen_frame
     and level == config.killscreen_level
   then
