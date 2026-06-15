@@ -2495,17 +2495,17 @@ local function export_text()
     end
 
     -- DK3 milestone timing
-    local prev_md_frame = nil
     for _, md in ipairs(s.dk3_max_diff_milestones) do
       local time_str = ""
       if s.start_frame then
         local total_dur = md.frame - s.start_frame
-        if prev_md_frame then
+        local prev_loop = s.dk3_loop_milestones[md.count - 1]
+        if prev_loop then
           time_str = string.format(
             " (Total: %s | %d: %s)",
             format_duration(total_dur),
             md.count,
-            format_duration(md.frame - prev_md_frame)
+            format_duration(md.frame - prev_loop.frame)
           )
         else
           time_str = string.format(" (%s)", format_duration(total_dur))
@@ -2519,20 +2519,19 @@ local function export_text()
           time_str
         )
       )
-      prev_md_frame = md.frame
     end
 
-    local prev_rbs_frame = nil
     for _, rbs in ipairs(s.dk3_rbs_milestones) do
       local time_str = ""
       if s.start_frame then
         local total_dur = rbs.frame - s.start_frame
-        if prev_rbs_frame then
+        local prev_loop = s.dk3_loop_milestones[rbs.rbs_num - 1]
+        if prev_loop then
           time_str = string.format(
             " (Total: %s | %d: %s)",
             format_duration(total_dur),
             rbs.rbs_num,
-            format_duration(rbs.frame - prev_rbs_frame)
+            format_duration(rbs.frame - prev_loop.frame)
           )
         else
           time_str = string.format(" (%s)", format_duration(total_dur))
@@ -2541,20 +2540,19 @@ local function export_text()
       file:write(
         string.format("RBS %d: Frame %s%s\n", rbs.rbs_num, format_number(rbs.frame), time_str)
       )
-      prev_rbs_frame = rbs.frame
     end
 
-    local prev_loop_frame = nil
     for _, loop in ipairs(s.dk3_loop_milestones) do
       local time_str = ""
       if s.start_frame then
         local total_dur = loop.frame - s.start_frame
-        if prev_loop_frame then
+        local prev_loop = s.dk3_loop_milestones[loop.loop_num - 1]
+        if prev_loop then
           time_str = string.format(
             " (Total: %s | %d: %s)",
             format_duration(total_dur),
             loop.loop_num,
-            format_duration(loop.frame - prev_loop_frame)
+            format_duration(loop.frame - prev_loop.frame)
           )
         else
           time_str = string.format(" (%s)", format_duration(total_dur))
@@ -2568,7 +2566,6 @@ local function export_text()
           time_str
         )
       )
-      prev_loop_frame = loop.frame
     end
 
     -- Elapsed times
@@ -3546,17 +3543,17 @@ local function print_dk3_summary(header_text, current_score)
     print("\nTIMING SUMMARY\n--------------")
   end
 
-  local prev_md_frame = nil
   for _, md in ipairs(s.dk3_max_diff_milestones) do
     local time_str = ""
     if s.start_frame then
       local total_dur = md.frame - s.start_frame
-      if prev_md_frame then
+      local prev_loop = s.dk3_loop_milestones[md.count - 1]
+      if prev_loop then
         time_str = string.format(
           " (Total: %s | %d: %s)",
           format_duration(total_dur),
           md.count,
-          format_duration(md.frame - prev_md_frame)
+          format_duration(md.frame - prev_loop.frame)
         )
       else
         time_str = string.format(" (%s)", format_duration(total_dur))
@@ -3565,40 +3562,38 @@ local function print_dk3_summary(header_text, current_score)
     print(
       string.format("Max Difficulty %d: Frame %s%s", md.count, format_number(md.frame), time_str)
     )
-    prev_md_frame = md.frame
   end
 
-  local prev_rbs_frame = nil
   for _, rbs in ipairs(s.dk3_rbs_milestones) do
     local time_str = ""
     if s.start_frame then
       local total_dur = rbs.frame - s.start_frame
-      if prev_rbs_frame then
+      local prev_loop = s.dk3_loop_milestones[rbs.rbs_num - 1]
+      if prev_loop then
         time_str = string.format(
           " (Total: %s | %d: %s)",
           format_duration(total_dur),
           rbs.rbs_num,
-          format_duration(rbs.frame - prev_rbs_frame)
+          format_duration(rbs.frame - prev_loop.frame)
         )
       else
         time_str = string.format(" (%s)", format_duration(total_dur))
       end
     end
     print(string.format("RBS %d: Frame %s%s", rbs.rbs_num, format_number(rbs.frame), time_str))
-    prev_rbs_frame = rbs.frame
   end
 
-  local prev_loop_frame = nil
   for _, loop in ipairs(s.dk3_loop_milestones) do
     local time_str = ""
     if s.start_frame then
       local total_dur = loop.frame - s.start_frame
-      if prev_loop_frame then
+      local prev_loop = s.dk3_loop_milestones[loop.loop_num - 1]
+      if prev_loop then
         time_str = string.format(
           " (Total: %s | %d: %s)",
           format_duration(total_dur),
           loop.loop_num,
-          format_duration(loop.frame - prev_loop_frame)
+          format_duration(loop.frame - prev_loop.frame)
         )
       else
         time_str = string.format(" (%s)", format_duration(total_dur))
@@ -3612,7 +3607,6 @@ local function print_dk3_summary(header_text, current_score)
         time_str
       )
     )
-    prev_loop_frame = loop.frame
   end
 
   if playing_frames then
