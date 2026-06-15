@@ -1,0 +1,257 @@
+=== BLOSSOM ===
+Game: Donkey Kong (US Set 1)
+romset: dkong
+MAME version: 0.251
+INP: dk-sr-wr-67m-59s-114ms-wolfmame251-09-10-24.inp
+
+Tracking gameplay...
+
+  [Timing] Start button: Frame 85
+  [Timing] Speedrun start: Frame 1,087
+Stage 1-1 Complete | Stage Score: 4,300 | Total Score: 4,300
+Stage 1-2 Complete | Stage Score: 5,200 | Total Score: 9,500
+
+>>> LEVEL 1 COMPLETE | Level Score: 9,500 | Total Score: 9,500 <<<
+
+Stage 2-1 Complete | Stage Score: 5,200 | Total Score: 14,700
+Stage 2-2 Complete | Stage Score: 5,100 | Total Score: 19,800
+Stage 2-3 Complete | Stage Score: 6,000 | Total Score: 25,800
+
+>>> LEVEL 2 COMPLETE | Level Score: 16,300 | Total Score: 25,800 <<<
+
+Stage 3-1 Complete | Stage Score: 6,400 | Total Score: 32,200
+Stage 3-2 Complete | Stage Score: 6,900 | Total Score: 39,100
+Stage 3-3 Complete | Stage Score: 6,100 | Total Score: 45,200
+Stage 3-4 Complete | Stage Score: 6,300 | Total Score: 51,500
+
+>>> LEVEL 3 COMPLETE | Level Score: 25,700 | Total Score: 51,500 <<<
+
+Stage 4-1 Complete | Stage Score: 7,200 | Total Score: 58,700
+Stage 4-2 Complete | Stage Score: 7,500 | Total Score: 66,200
+Stage 4-3 Complete | Stage Score: 7,200 | Total Score: 73,400
+Stage 4-4 Complete | Stage Score: 6,800 | Total Score: 80,200
+  [Timing] Start Speedrun End: Frame 29,845 (28,758 frames - 0:07:54.507)
+  [Timing] Standard Start End: Frame 30,614 (30,529 frames - 0:08:23.729)
+Stage 4-5 Complete | Stage Score: 4,600 | Total Score: 84,800
+
+>>> LEVEL 4 COMPLETE | Level Score: 33,300 | Total Score: 84,800 <<<
+
+Stage 5-1 Complete | Stage Score: 7,100 | Total Score: 91,900 | Barrel Avg: 7,100.00
+Stage 5-2 Complete | Stage Score: 7,600 | Total Score: 99,500 | Pie Avg: 7,600.00
+  *** 100,000 Milestone (Frame 35,301 - 0:09:41.064 | Lives: 4) ***
+Stage 5-3 Complete | Stage Score: 7,200 | Total Score: 106,700 | Barrel Avg: 7,150.00
+Stage 5-4 Complete | Stage Score: 6,700 | Total Score: 113,400 | Spring Avg: 6,700.00
+Stage 5-5 Complete | Stage Score: 7,300 | Total Score: 120,700 | Barrel Avg: 7,200.00
+Stage 5-6 Complete | Stage Score: 7,400 | Total Score: 128,100 | Rivet Avg: 7,400.00 | Pace: 823,700
+
+>>> LEVEL 5 COMPLETE | Level Score: 43,300 | Total Score: 128,100 | Level Avg: 43,300.00 <<<
+
+Stage 6-1 Complete | Stage Score: 7,400 | Total Score: 135,500 | Barrel Avg: 7,250.00 | Pace: 826,300
+Stage 6-2 Complete | Stage Score: 7,600 | Total Score: 143,100 | Pie Avg: 7,600.00 | Pace: 826,300
+Stage 6-3 Complete | Stage Score: 7,200 | Total Score: 150,300 | Barrel Avg: 7,240.00 | Pace: 825,700
+Stage 6-4 Complete | Stage Score: 6,500 | Total Score: 156,800 | Spring Avg: 6,600.00 | Pace: 824,000
+Stage 6-5 Complete | Stage Score: 7,100 | Total Score: 163,900 | Barrel Avg: 7,216.67 | Pace: 822,900
+Stage 6-6 Complete | Stage Score: 7,700 | Total Score: 171,600 | Rivet Avg: 7,550.00 | Pace: 825,400
+
+>>> LEVEL 6 COMPLETE | Level Score: 43,500 | Total Score: 171,600 | Level Avg: 43,400.00 <<<
+
+Stage 7-1 Complete | Stage Score: 7,200 | Total Score: 178,800 | Barrel Avg: 7,214.29 | Pace: 825,300
+Stage 7-2 Complete | Stage Score: 7,500 | Total Score: 186,300 | Pie Avg: 7,566.67 | Pace: 824,700
+Stage 7-3 Complete | Stage Score: 7,300 | Total Score: 193,600 | Barrel Avg: 7,225.00 | Pace: 825,300
+  *** 200,000 Milestone (Frame 62,193 - 0:17:04.782 | Lives: 4) ***
+Stage 7-4 Complete | Stage Score: 6,800 | Total Score: 200,400 | Spring Avg: 6,666.67 | Pace: 826,400
+Stage 7-5 Complete | Stage Score: 7,400 | Total Score: 207,800 | Barrel Avg: 7,244.44 | Pace: 827,400
+Stage 7-6 Complete | Stage Score: 6,000 | Total Score: 213,800 | Rivet Avg: 7,033.33 | Pace: 818,600
+
+>>> LEVEL 7 COMPLETE | Level Score: 42,200 | Total Score: 213,800 | Level Avg: 43,000.00 <<<
+
+Stage 8-1 Complete | Stage Score: 7,300 | Total Score: 221,100 | Barrel Avg: 7,250.00 | Pace: 818,900
+*** Death #1 - Stage 8-2 *** | Death Points: 800 | Total Score: 221,900 | Timer: 7,300
+Stage 8-2 Complete | Stage Score: 7,500 | Total Score: 229,400 | Pie Avg: 7,550.00 | Pace: 818,700
+Stage 8-3 Complete | Stage Score: 7,400 | Total Score: 236,800 | Barrel Avg: 7,263.64 | Pace: 819,400
+Stage 8-4 Complete | Stage Score: 6,600 | Total Score: 243,400 | Spring Avg: 6,650.00 | Pace: 819,100
+Stage 8-5 Complete | Stage Score: 7,500 | Total Score: 250,900 | Barrel Avg: 7,283.33 | Pace: 820,100
+Stage 8-6 Complete | Stage Score: 6,200 | Total Score: 257,100 | Rivet Avg: 6,825.00 | Pace: 816,600
+
+>>> LEVEL 8 COMPLETE | Level Score: 42,500 | Total Score: 257,100 | Level Avg: 42,875.00 <<<
+
+Stage 9-1 Complete | Stage Score: 7,200 | Total Score: 264,300 | Barrel Avg: 7,276.92 | Pace: 816,200
+Stage 9-2 Complete | Stage Score: 7,400 | Total Score: 271,700 | Pie Avg: 7,520.00 | Pace: 815,700
+Stage 9-3 Complete | Stage Score: 7,400 | Total Score: 279,100 | Barrel Avg: 7,285.71 | Pace: 816,200
+Stage 9-4 Complete | Stage Score: 6,600 | Total Score: 285,700 | Spring Avg: 6,640.00 | Pace: 816,000
+Stage 9-5 Complete | Stage Score: 7,500 | Total Score: 293,200 | Barrel Avg: 7,300.00 | Pace: 816,700
+  *** 300,000 Milestone (Frame 92,663 - 0:25:27.537 | Lives: 3) ***
+Stage 9-6 Complete | Stage Score: 7,100 | Total Score: 300,300 | Rivet Avg: 6,880.00 | Pace: 817,700
+
+>>> LEVEL 9 COMPLETE | Level Score: 43,200 | Total Score: 300,300 | Level Avg: 42,940.00 <<<
+
+Stage 10-1 Complete | Stage Score: 7,200 | Total Score: 307,500 | Barrel Avg: 7,293.75 | Pace: 817,400
+Stage 10-2 Complete | Stage Score: 7,600 | Total Score: 315,100 | Pie Avg: 7,533.33 | Pace: 817,600
+Stage 10-3 Complete | Stage Score: 7,000 | Total Score: 322,100 | Barrel Avg: 7,276.47 | Pace: 816,700
+Stage 10-4 Complete | Stage Score: 6,200 | Total Score: 328,300 | Spring Avg: 6,566.67 | Pace: 815,500
+Stage 10-5 Complete | Stage Score: 7,400 | Total Score: 335,700 | Barrel Avg: 7,283.33 | Pace: 815,800
+Stage 10-6 Complete | Stage Score: 5,700 | Total Score: 341,400 | Rivet Avg: 6,683.33 | Pace: 812,500
+
+>>> LEVEL 10 COMPLETE | Level Score: 41,100 | Total Score: 341,400 | Level Avg: 42,633.33 <<<
+
+Stage 11-1 Complete | Stage Score: 7,100 | Total Score: 348,500 | Barrel Avg: 7,273.68 | Pace: 812,000
+Stage 11-2 Complete | Stage Score: 7,700 | Total Score: 356,200 | Pie Avg: 7,557.14 | Pace: 812,400
+Stage 11-3 Complete | Stage Score: 7,500 | Total Score: 363,700 | Barrel Avg: 7,285.00 | Pace: 813,000
+Stage 11-4 Complete | Stage Score: 6,200 | Total Score: 369,900 | Spring Avg: 6,514.29 | Pace: 812,100
+Stage 11-5 Complete | Stage Score: 7,100 | Total Score: 377,000 | Barrel Avg: 7,276.19 | Pace: 811,600
+Stage 11-6 Complete | Stage Score: 8,000 | Total Score: 385,000 | Rivet Avg: 6,871.43 | Pace: 814,800
+
+>>> LEVEL 11 COMPLETE | Level Score: 43,600 | Total Score: 385,000 | Level Avg: 42,771.43 <<<
+
+Stage 12-1 Complete | Stage Score: 6,900 | Total Score: 391,900 | Barrel Avg: 7,259.09 | Pace: 813,900
+Stage 12-2 Complete | Stage Score: 7,500 | Total Score: 399,400 | Pie Avg: 7,550.00 | Pace: 813,800
+  *** 400,000 Milestone (Frame 123,115 - 0:33:49.995 | Lives: 3) ***
+Stage 12-3 Complete | Stage Score: 7,400 | Total Score: 406,800 | Barrel Avg: 7,265.22 | Pace: 814,100
+Stage 12-4 Complete | Stage Score: 6,500 | Total Score: 413,300 | Spring Avg: 6,512.50 | Pace: 814,100
+Stage 12-5 Complete | Stage Score: 7,300 | Total Score: 420,600 | Barrel Avg: 7,266.67 | Pace: 814,200
+Stage 12-6 Complete | Stage Score: 4,900 | Total Score: 425,500 | Rivet Avg: 6,625.00 | Pace: 810,000
+
+>>> LEVEL 12 COMPLETE | Level Score: 40,500 | Total Score: 425,500 | Level Avg: 42,487.50 <<<
+
+Stage 13-1 Complete | Stage Score: 7,200 | Total Score: 432,700 | Barrel Avg: 7,264.00 | Pace: 809,900
+Stage 13-2 Complete | Stage Score: 7,600 | Total Score: 440,300 | Pie Avg: 7,555.56 | Pace: 809,900
+Stage 13-3 Complete | Stage Score: 7,100 | Total Score: 447,400 | Barrel Avg: 7,257.69 | Pace: 809,600
+Stage 13-4 Complete | Stage Score: 6,800 | Total Score: 454,200 | Spring Avg: 6,544.44 | Pace: 810,200
+Stage 13-5 Complete | Stage Score: 7,400 | Total Score: 461,600 | Barrel Avg: 7,262.96 | Pace: 810,400
+Stage 13-6 Complete | Stage Score: 6,600 | Total Score: 468,200 | Rivet Avg: 6,622.22 | Pace: 810,400
+
+>>> LEVEL 13 COMPLETE | Level Score: 42,700 | Total Score: 468,200 | Level Avg: 42,511.11 <<<
+
+Stage 14-1 Complete | Stage Score: 7,600 | Total Score: 475,800 | Barrel Avg: 7,275.00 | Pace: 811,000
+Stage 14-2 Complete | Stage Score: 7,500 | Total Score: 483,300 | Pie Avg: 7,550.00 | Pace: 810,900
+Stage 14-3 Complete | Stage Score: 7,100 | Total Score: 490,400 | Barrel Avg: 7,268.97 | Pace: 810,600
+Stage 14-4 Complete | Stage Score: 5,900 | Total Score: 496,300 | Spring Avg: 6,480.00 | Pace: 809,500
+  *** 500,000 Milestone (Frame 154,394 - 0:42:26.099 | Lives: 3) ***
+Stage 14-5 Complete | Stage Score: 7,300 | Total Score: 503,600 | Barrel Avg: 7,270.00 | Pace: 809,600
+Stage 14-6 Complete | Stage Score: 5,900 | Total Score: 509,500 | Rivet Avg: 6,550.00 | Pace: 808,300
+
+>>> LEVEL 14 COMPLETE | Level Score: 41,300 | Total Score: 509,500 | Level Avg: 42,390.00 <<<
+
+Stage 15-1 Complete | Stage Score: 7,100 | Total Score: 516,600 | Barrel Avg: 7,264.52 | Pace: 808,100
+Stage 15-2 Complete | Stage Score: 7,600 | Total Score: 524,200 | Pie Avg: 7,554.55 | Pace: 808,100
+Stage 15-3 Complete | Stage Score: 7,000 | Total Score: 531,200 | Barrel Avg: 7,256.25 | Pace: 807,700
+Stage 15-4 Complete | Stage Score: 5,900 | Total Score: 537,100 | Spring Avg: 6,427.27 | Pace: 806,800
+Stage 15-5 Complete | Stage Score: 7,400 | Total Score: 544,500 | Barrel Avg: 7,260.61 | Pace: 807,000
+Stage 15-6 Complete | Stage Score: 7,700 | Total Score: 552,200 | Rivet Avg: 6,654.55 | Pace: 808,800
+
+>>> LEVEL 15 COMPLETE | Level Score: 42,700 | Total Score: 552,200 | Level Avg: 42,418.18 <<<
+
+Stage 16-1 Complete | Stage Score: 7,300 | Total Score: 559,500 | Barrel Avg: 7,261.76 | Pace: 808,900
+Stage 16-2 Complete | Stage Score: 6,600 | Total Score: 566,100 | Pie Avg: 7,475.00 | Pace: 807,500
+Stage 16-3 Complete | Stage Score: 7,500 | Total Score: 573,600 | Barrel Avg: 7,268.57 | Pace: 807,900
+Stage 16-4 Complete | Stage Score: 6,700 | Total Score: 580,300 | Spring Avg: 6,450.00 | Pace: 808,200
+Stage 16-5 Complete | Stage Score: 7,400 | Total Score: 587,700 | Barrel Avg: 7,272.22 | Pace: 808,400
+Stage 16-6 Complete | Stage Score: 8,100 | Total Score: 595,800 | Rivet Avg: 6,775.00 | Pace: 810,500
+
+>>> LEVEL 16 COMPLETE | Level Score: 43,600 | Total Score: 595,800 | Level Avg: 42,516.67 <<<
+
+  *** 600,000 Milestone (Frame 185,131 - 0:50:53.259 | Lives: 3) ***
+Stage 17-1 Complete | Stage Score: 7,300 | Total Score: 603,100 | Barrel Avg: 7,272.97 | Pace: 810,500
+Stage 17-2 Complete | Stage Score: 6,200 | Total Score: 609,300 | Pie Avg: 7,376.92 | Pace: 808,900
+Stage 17-3 Complete | Stage Score: 7,200 | Total Score: 616,500 | Barrel Avg: 7,271.05 | Pace: 808,800
+Stage 17-4 Complete | Stage Score: 6,200 | Total Score: 622,700 | Spring Avg: 6,430.77 | Pace: 808,400
+Stage 17-5 Complete | Stage Score: 7,600 | Total Score: 630,300 | Barrel Avg: 7,279.49 | Pace: 808,900
+Stage 17-6 Complete | Stage Score: 7,800 | Total Score: 638,100 | Rivet Avg: 6,853.85 | Pace: 810,200
+
+>>> LEVEL 17 COMPLETE | Level Score: 42,300 | Total Score: 638,100 | Level Avg: 42,500.00 <<<
+
+Stage 18-1 Complete | Stage Score: 7,400 | Total Score: 645,500 | Barrel Avg: 7,282.50 | Pace: 810,400
+Stage 18-2 Complete | Stage Score: 7,500 | Total Score: 653,000 | Pie Avg: 7,385.71 | Pace: 810,500
+Stage 18-3 Complete | Stage Score: 7,200 | Total Score: 660,200 | Barrel Avg: 7,280.49 | Pace: 810,400
+Stage 18-4 Complete | Stage Score: 6,500 | Total Score: 666,700 | Spring Avg: 6,435.71 | Pace: 810,500
+Stage 18-5 Complete | Stage Score: 7,300 | Total Score: 674,000 | Barrel Avg: 7,280.95 | Pace: 810,500
+Stage 18-6 Complete | Stage Score: 7,200 | Total Score: 681,200 | Rivet Avg: 6,878.57 | Pace: 810,900
+
+>>> LEVEL 18 COMPLETE | Level Score: 43,100 | Total Score: 681,200 | Level Avg: 42,542.86 <<<
+
+Stage 19-1 Complete | Stage Score: 7,300 | Total Score: 688,500 | Barrel Avg: 7,281.40 | Pace: 811,000
+*** Death #2 - Stage 19-2 *** | Death Points: 800 | Total Score: 689,300 | Timer: 7,300
+Stage 19-2 Complete | Stage Score: 7,500 | Total Score: 696,800 | Pie Avg: 7,393.33 | Pace: 811,200
+  *** 700,000 Milestone (Frame 214,965 - 0:59:05.520 | Lives: 2) ***
+Stage 19-3 Complete | Stage Score: 7,300 | Total Score: 704,100 | Barrel Avg: 7,281.82 | Pace: 811,200
+Stage 19-4 Complete | Stage Score: 6,600 | Total Score: 710,700 | Spring Avg: 6,446.67 | Pace: 811,400
+Stage 19-5 Complete | Stage Score: 7,300 | Total Score: 718,000 | Barrel Avg: 7,282.22 | Pace: 811,400
+Stage 19-6 Complete | Stage Score: 5,500 | Total Score: 723,500 | Rivet Avg: 6,786.67 | Pace: 809,800
+
+>>> LEVEL 19 COMPLETE | Level Score: 41,500 | Total Score: 723,500 | Level Avg: 42,473.33 <<<
+
+Stage 20-1 Complete | Stage Score: 7,200 | Total Score: 730,700 | Barrel Avg: 7,280.43 | Pace: 809,800
+Stage 20-2 Complete | Stage Score: 7,500 | Total Score: 738,200 | Pie Avg: 7,400.00 | Pace: 809,900
+Stage 20-3 Complete | Stage Score: 7,200 | Total Score: 745,400 | Barrel Avg: 7,278.72 | Pace: 809,800
+Stage 20-4 Complete | Stage Score: 6,400 | Total Score: 751,800 | Spring Avg: 6,443.75 | Pace: 809,700
+Stage 20-5 Complete | Stage Score: 7,100 | Total Score: 758,900 | Barrel Avg: 7,275.00 | Pace: 809,500
+Stage 20-6 Complete | Stage Score: 7,000 | Total Score: 765,900 | Rivet Avg: 6,800.00 | Pace: 809,800
+
+>>> LEVEL 20 COMPLETE | Level Score: 42,400 | Total Score: 765,900 | Level Avg: 42,468.75 <<<
+
+Stage 21-1 Complete | Stage Score: 7,100 | Total Score: 773,000 | Barrel Avg: 7,271.43 | Pace: 809,600
+Stage 21-2 Complete | Stage Score: 7,700 | Total Score: 780,700 | Pie Avg: 7,417.65 | Pace: 809,900
+Stage 21-3 Complete | Stage Score: 7,300 | Total Score: 788,000 | Barrel Avg: 7,272.00 | Pace: 809,900
+Stage 21-4 Complete | Stage Score: 6,700 | Total Score: 794,700 | Spring Avg: 6,458.82 | Pace: 810,200
+  *** 800,000 Milestone (Frame 243,254 - 1:06:52.288 | Lives: 2) ***
+Stage 21-5 Complete | Stage Score: 7,300 | Total Score: 802,000 | Barrel Avg: 7,272.55 | Pace: 810,200
+Stage 21-6 Complete | Stage Score: 6,500 | Total Score: 808,500 | Rivet Avg: 6,782.35 | Pace: 809,900
+
+>>> LEVEL 21 COMPLETE | Level Score: 42,600 | Total Score: 808,500 | Level Avg: 42,476.47 <<<
+
+  [Timing] Killscreen Speedrun End: Frame 248,306 (247,219 frames - 1:07:59.114)
+*** Death #3 - Stage 22-1 *** | Death Points: 300 | Total Score: 808,800 | Timer: 0
+*** Death #4 - Stage 22-1 *** | Death Points: 200 | Total Score: 809,000 | Timer: 0
+  [Timing] Standard Game End: Frame 249,628 (249,543 frames - 1:08:37.460)
+
+=== GAME OVER ===
+
+SCORING SUMMARY
+---------------
+Final Score: 809,000
+Final Stage: 22-1
+Total Screens: 117
+Start Score: 84,800
+L5+ Barrels: Average: 7,272.55 | Best: 7,600 (14-1, 17-5) | Worst: 6,900 (12-1)
+L5+ Pies: Average: 7,417.65 | Best: 7,700 (L11, L21) | Worst: 6,200 (L17)
+L5+ Springs: Average: 6,458.82 | Best: 6,800 (L7, L13) | Worst: 5,900 (L14, L15)
+L5+ Rivets: Average: 6,782.35 | Best: 8,100 (L16) | Worst: 4,900 (L12)
+L5+ Levels: Average: 42,476.47 | Best: 43,600 (L11, L16) | Worst: 40,500 (L12)
+Recorded Lives (starting + bonus): 4 (3 + 1)
+Recorded Deaths: 4
+Total Death Points: 2,100
+First Life Score: 221,900
+Last Life Score: 200
+Longest Life (points): #2 - 467,400
+Longest Life (stages): #2 - 66
+Shortest Life (points): #4 - 200
+Shortest Life (stages): #4 - 0
+Average Life (points): 202,250.00
+Average Life (stages): 29.00
+
+TIMING SUMMARY
+--------------
+Unofficial Speedrun Start Time: 0:07:54.507
+Unofficial Standard Start Time: 0:08:23.729
+Unofficial Speedrun Killscreen Time: 1:07:59.114
+Unofficial Full Game Time: 1:08:37.460
+
+Speedrun Start Frames: 1,087 - 29,845 (28,758 frames)
+Standard Start Frames: 85 - 30,614 (30,529 frames)
+Speedrun Killscreen Frames: 1,087 - 248,306 (247,219 frames)
+Full Game Frames: 85 - 249,628 (249,543 frames)
+
+SCORE MILESTONES
+----------------
+100,000 (Frame 35,301 - 0:09:41.064) | 5-3 | Timer: 6,800 | Lives: 4
+200,000 (Frame 62,193 - 0:17:04.782) | +0:07:23.718 | 7-4 | Timer: 6,800 | Lives: 4 [stage end]
+300,000 (Frame 92,663 - 0:25:27.537) | +0:08:22.755 | 9-6 | Timer: 4,200 | Lives: 3 [stage end]
+400,000 (Frame 123,115 - 0:33:49.995) | +0:08:22.458 | 12-3 | Timer: 6,900 | Lives: 3
+500,000 (Frame 154,394 - 0:42:26.099) | +0:08:36.103 | 14-5 | Timer: 6,500 | Lives: 3 [stage end]
+600,000 (Frame 185,131 - 0:50:53.259) | +0:08:27.160 | 17-1 | Timer: 6,600 | Lives: 3 [stage end]
+700,000 (Frame 214,965 - 0:59:05.520) | +0:08:12.261 | 19-3 | Timer: 6,600 | Lives: 2 [stage end]
+800,000 (Frame 243,254 - 1:06:52.288) | +0:07:46.768 | 21-5 | Timer: 6,500 | Lives: 2 [stage end]
+
+[OK] CSV exported to: blossom_logs/dk-sr-wr-67m-59s-114ms-wolfmame251-09-10-24_20260614_190426_session_001_scores.csv
+[OK] JSON exported to: blossom_logs/dk-sr-wr-67m-59s-114ms-wolfmame251-09-10-24_20260614_190426_session_001_scores.json
+[OK] Text exported to: blossom_logs/dk-sr-wr-67m-59s-114ms-wolfmame251-09-10-24_20260614_190426_session_001_scores.txt

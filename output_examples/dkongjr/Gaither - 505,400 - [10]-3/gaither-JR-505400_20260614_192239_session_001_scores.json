@@ -1,0 +1,660 @@
+{
+  "metadata": {
+    "game": "Donkey Kong Junior",
+    "variation": null,
+    "romset": "dkongjr",
+    "inp_file": "gaither-JR-505400.inp",
+    "mame_version": "0.184",
+    "blossom_version": "2.0.0"
+  },
+  "scoring_summary": {
+    "final_score": 505400,
+    "final_level": "[10]-3",
+    "final_stage": 35,
+    "recorded_lives": 4,
+    "starting_lives": 3,
+    "earned_lives": 1,
+    "recorded_deaths": 4,
+    "total_death_points": 49700,
+    "total_screens": 35,
+    "start_score_total": 91900,
+    "start_score_for_pace": 91900,
+    "start_phase_deaths": 0,
+    "start_phase_death_points": 0,
+    "screen_type_averages": {
+      "jungle": {
+        "average": 14328.571,
+        "best_score": 17200,
+        "best_stages": "L4",
+        "worst_score": 13200,
+        "worst_stages": "L[10]",
+        "count": 7
+      },
+      "spring": {
+        "average": 6742.857,
+        "best_score": 9200,
+        "best_stages": "L7",
+        "worst_score": 5100,
+        "worst_stages": "L[10]",
+        "count": 7
+      },
+      "chain": {
+        "average": 8100,
+        "best_score": 11500,
+        "best_stages": "L7",
+        "worst_score": 5700,
+        "worst_stages": "L4",
+        "count": 6
+      },
+      "hideout": {
+        "average": 27950,
+        "best_score": 30300,
+        "best_stages": "L6",
+        "worst_score": 25200,
+        "worst_stages": "L5",
+        "count": 6
+      }
+    },
+    "level_averages": {
+      "average": 57583.333,
+      "best_score": 63900,
+      "best_levels": "L7",
+      "worst_score": 53200,
+      "worst_levels": "L5",
+      "count": 6
+    },
+    "life_stats": {
+      "first_life_score": 279400,
+      "last_life_score": 44400,
+      "longest_life_points": {
+        "score": 279400,
+        "life_nums": [
+          1
+        ]
+      },
+      "longest_life_stages": {
+        "stages": 21,
+        "life_nums": [
+          1
+        ]
+      },
+      "shortest_life_points": {
+        "score": 38700,
+        "life_nums": [
+          3
+        ]
+      },
+      "shortest_life_stages": {
+        "stages": 2,
+        "life_nums": [
+          3,
+          4
+        ]
+      },
+      "avg_points": 126350,
+      "avg_stages": 8.500
+    }
+  },
+  "timing_summary": {
+    "start_button_frame": 227,
+    "speedrun_start_frame": 1222,
+    "speedrun_start_end_frame": 41562,
+    "standard_start_end_frame": 42549,
+    "speedrun_killscreen_frame": null,
+    "end_game_frame": 271810,
+    "game_over_vram_frame": 271810,
+    "speedrun_start_duration_frames": 40340,
+    "speedrun_start_time": "0:11:05.610",
+    "standard_start_duration_frames": 42322,
+    "standard_start_time": "0:11:38.313",
+    "speedrun_killscreen_duration_frames": null,
+    "speedrun_killscreen_time": null,
+    "full_game_frames": 271583,
+    "full_game_time": "1:14:41.120"
+  },
+  "score_milestones": [
+    {
+      "score": 100000,
+      "frame": 48934,
+      "time_from_start": "0:13:23.666",
+      "stage": "4-1",
+      "screen_num": 9,
+      "bonus_timer": 4300,
+      "lives": 4,
+      "during_gameplay": true
+    },
+    {
+      "score": 200000,
+      "frame": 106938,
+      "time_from_start": "0:29:20.731",
+      "stage": "5-4",
+      "screen_num": 16,
+      "bonus_timer": 3900,
+      "lives": 4,
+      "during_gameplay": false
+    },
+    {
+      "score": 300000,
+      "frame": 161779,
+      "time_from_start": "0:44:25.608",
+      "stage": "7-3",
+      "screen_num": 23,
+      "bonus_timer": 5300,
+      "lives": 3,
+      "during_gameplay": true
+    },
+    {
+      "score": 400000,
+      "frame": 214168,
+      "time_from_start": "0:58:50.027",
+      "stage": "9-1",
+      "screen_num": 29,
+      "bonus_timer": 4900,
+      "lives": 3,
+      "during_gameplay": false
+    },
+    {
+      "score": 500000,
+      "frame": 268509,
+      "time_from_start": "1:13:46.653",
+      "stage": "[10]-3",
+      "screen_num": 35,
+      "bonus_timer": 2400,
+      "lives": 1,
+      "during_gameplay": true
+    }
+  ],
+  "deaths": [
+    {
+      "death_num": 1,
+      "frame": 153040,
+      "stage": "7-2",
+      "screen_num": 22,
+      "screen_type": "Spring",
+      "death_points": 4500,
+      "running_total": 279400,
+      "bonus_timer": 3000
+    },
+    {
+      "death_num": 2,
+      "frame": 224135,
+      "stage": "9-3",
+      "screen_num": 31,
+      "screen_type": "Hideout",
+      "death_points": 15400,
+      "running_total": 422300,
+      "bonus_timer": 4900
+    },
+    {
+      "death_num": 3,
+      "frame": 245197,
+      "stage": "[10]-1",
+      "screen_num": 33,
+      "screen_type": "Jungle",
+      "death_points": 3700,
+      "running_total": 461000,
+      "bonus_timer": 7000
+    },
+    {
+      "death_num": 4,
+      "frame": 271809,
+      "stage": "[10]-3",
+      "screen_num": 35,
+      "screen_type": "Hideout",
+      "death_points": 26100,
+      "running_total": 505400,
+      "bonus_timer": 700
+    }
+  ],
+  "stages": [
+    {
+      "screen_num": 1,
+      "stage": "1-1",
+      "level": 1,
+      "screen_type": "Jungle",
+      "board_score": 8900,
+      "running_total": 8900,
+      "lives": 3,
+      "frame": 4120,
+      "bonus_timer": null
+    },
+    {
+      "screen_num": 2,
+      "stage": "1-2",
+      "level": 1,
+      "screen_type": "Chain",
+      "board_score": 8200,
+      "running_total": 17100,
+      "lives": 4,
+      "frame": 7403,
+      "bonus_timer": null
+    },
+    {
+      "screen_num": 3,
+      "stage": "2-1",
+      "level": 2,
+      "screen_type": "Jungle",
+      "board_score": 11800,
+      "running_total": 28900,
+      "lives": 4,
+      "frame": 11766,
+      "bonus_timer": null
+    },
+    {
+      "screen_num": 4,
+      "stage": "2-2",
+      "level": 2,
+      "screen_type": "Spring",
+      "board_score": 8000,
+      "running_total": 36900,
+      "lives": 4,
+      "frame": 14713,
+      "bonus_timer": null
+    },
+    {
+      "screen_num": 5,
+      "stage": "2-3",
+      "level": 2,
+      "screen_type": "Chain",
+      "board_score": 9400,
+      "running_total": 46300,
+      "lives": 4,
+      "frame": 18662,
+      "bonus_timer": null
+    },
+    {
+      "screen_num": 6,
+      "stage": "3-1",
+      "level": 3,
+      "screen_type": "Jungle",
+      "board_score": 16900,
+      "running_total": 63200,
+      "lives": 4,
+      "frame": 25958,
+      "bonus_timer": null
+    },
+    {
+      "screen_num": 7,
+      "stage": "3-2",
+      "level": 3,
+      "screen_type": "Hideout",
+      "board_score": 23200,
+      "running_total": 86400,
+      "lives": 4,
+      "frame": 37854,
+      "bonus_timer": null
+    },
+    {
+      "screen_num": 8,
+      "stage": "3-3",
+      "level": 3,
+      "screen_type": "Chain",
+      "board_score": 5500,
+      "running_total": 91900,
+      "lives": 4,
+      "frame": 42450,
+      "bonus_timer": null
+    },
+    {
+      "screen_num": 9,
+      "stage": "4-1",
+      "level": 4,
+      "screen_type": "Jungle",
+      "board_score": 17200,
+      "running_total": 109100,
+      "lives": 4,
+      "frame": 52768,
+      "bonus_timer": null,
+      "avg_type": "Jungle Avg",
+      "avg_value": 17200
+    },
+    {
+      "screen_num": 10,
+      "stage": "4-2",
+      "level": 4,
+      "screen_type": "Spring",
+      "board_score": 6900,
+      "running_total": 116000,
+      "lives": 4,
+      "frame": 57454,
+      "bonus_timer": null,
+      "avg_type": "Spring Avg",
+      "avg_value": 6900
+    },
+    {
+      "screen_num": 11,
+      "stage": "4-3",
+      "level": 4,
+      "screen_type": "Hideout",
+      "board_score": 27000,
+      "running_total": 143000,
+      "lives": 4,
+      "frame": 71122,
+      "bonus_timer": null,
+      "avg_type": "Hideout Avg",
+      "avg_value": 27000
+    },
+    {
+      "screen_num": 12,
+      "stage": "4-4",
+      "level": 4,
+      "screen_type": "Chain",
+      "board_score": 5700,
+      "running_total": 148700,
+      "lives": 4,
+      "frame": 75884,
+      "bonus_timer": null,
+      "avg_type": "Chain Avg",
+      "avg_value": 5700,
+      "pace": 1122300
+    },
+    {
+      "screen_num": 13,
+      "stage": "5-1",
+      "level": 5,
+      "screen_type": "Jungle",
+      "board_score": 13600,
+      "running_total": 162300,
+      "lives": 4,
+      "frame": 84468,
+      "bonus_timer": null,
+      "avg_type": "Jungle Avg",
+      "avg_value": 15400,
+      "pace": 1089900
+    },
+    {
+      "screen_num": 14,
+      "stage": "5-2",
+      "level": 5,
+      "screen_type": "Spring",
+      "board_score": 5700,
+      "running_total": 168000,
+      "lives": 4,
+      "frame": 89826,
+      "bonus_timer": null,
+      "avg_type": "Spring Avg",
+      "avg_value": 6300,
+      "pace": 1079100
+    },
+    {
+      "screen_num": 15,
+      "stage": "5-3",
+      "level": 5,
+      "screen_type": "Hideout",
+      "board_score": 25200,
+      "running_total": 193200,
+      "lives": 4,
+      "frame": 103714,
+      "bonus_timer": null,
+      "avg_type": "Hideout Avg",
+      "avg_value": 26100,
+      "pace": 1062900
+    },
+    {
+      "screen_num": 16,
+      "stage": "5-4",
+      "level": 5,
+      "screen_type": "Chain",
+      "board_score": 8700,
+      "running_total": 201900,
+      "lives": 4,
+      "frame": 107480,
+      "bonus_timer": null,
+      "avg_type": "Chain Avg",
+      "avg_value": 7200,
+      "pace": 1089900
+    },
+    {
+      "screen_num": 17,
+      "stage": "6-1",
+      "level": 6,
+      "screen_type": "Jungle",
+      "board_score": 13400,
+      "running_total": 215300,
+      "lives": 4,
+      "frame": 117916,
+      "bonus_timer": null,
+      "avg_type": "Jungle Avg",
+      "avg_value": 14733.333,
+      "pace": 1077900
+    },
+    {
+      "screen_num": 18,
+      "stage": "6-2",
+      "level": 6,
+      "screen_type": "Spring",
+      "board_score": 8700,
+      "running_total": 224000,
+      "lives": 4,
+      "frame": 121278,
+      "bonus_timer": null,
+      "avg_type": "Spring Avg",
+      "avg_value": 7100,
+      "pace": 1092300
+    },
+    {
+      "screen_num": 19,
+      "stage": "6-3",
+      "level": 6,
+      "screen_type": "Hideout",
+      "board_score": 30300,
+      "running_total": 254300,
+      "lives": 4,
+      "frame": 134958,
+      "bonus_timer": null,
+      "avg_type": "Hideout Avg",
+      "avg_value": 27500,
+      "pace": 1117500
+    },
+    {
+      "screen_num": 20,
+      "stage": "6-4",
+      "level": 6,
+      "screen_type": "Chain",
+      "board_score": 7200,
+      "running_total": 261500,
+      "lives": 4,
+      "frame": 139616,
+      "bonus_timer": null,
+      "avg_type": "Chain Avg",
+      "avg_value": 7200,
+      "pace": 1117500
+    },
+    {
+      "screen_num": 21,
+      "stage": "7-1",
+      "level": 7,
+      "screen_type": "Jungle",
+      "board_score": 13400,
+      "running_total": 274900,
+      "lives": 4,
+      "frame": 149380,
+      "bonus_timer": null,
+      "avg_type": "Jungle Avg",
+      "avg_value": 14400,
+      "pace": 1111500
+    },
+    {
+      "screen_num": 22,
+      "stage": "7-2",
+      "level": 7,
+      "screen_type": "Spring",
+      "board_score": 9200,
+      "running_total": 288600,
+      "lives": 3,
+      "frame": 156729,
+      "bonus_timer": null,
+      "avg_type": "Spring Avg",
+      "avg_value": 7625,
+      "pace": 1123500
+    },
+    {
+      "screen_num": 23,
+      "stage": "7-3",
+      "level": 7,
+      "screen_type": "Hideout",
+      "board_score": 29800,
+      "running_total": 318400,
+      "lives": 3,
+      "frame": 170573,
+      "bonus_timer": null,
+      "avg_type": "Hideout Avg",
+      "avg_value": 28075,
+      "pace": 1133800
+    },
+    {
+      "screen_num": 24,
+      "stage": "7-4",
+      "level": 7,
+      "screen_type": "Chain",
+      "board_score": 11500,
+      "running_total": 329900,
+      "lives": 3,
+      "frame": 174448,
+      "bonus_timer": null,
+      "avg_type": "Chain Avg",
+      "avg_value": 8275,
+      "pace": 1153200
+    },
+    {
+      "screen_num": 25,
+      "stage": "8-1",
+      "level": 8,
+      "screen_type": "Jungle",
+      "board_score": 13300,
+      "running_total": 343200,
+      "lives": 3,
+      "frame": 185455,
+      "bonus_timer": null,
+      "avg_type": "Jungle Avg",
+      "avg_value": 14180,
+      "pace": 1149200
+    },
+    {
+      "screen_num": 26,
+      "stage": "8-2",
+      "level": 8,
+      "screen_type": "Spring",
+      "board_score": 5700,
+      "running_total": 348900,
+      "lives": 3,
+      "frame": 190561,
+      "bonus_timer": null,
+      "avg_type": "Spring Avg",
+      "avg_value": 7240,
+      "pace": 1142300
+    },
+    {
+      "screen_num": 27,
+      "stage": "8-3",
+      "level": 8,
+      "screen_type": "Hideout",
+      "board_score": 26400,
+      "running_total": 375300,
+      "lives": 3,
+      "frame": 204153,
+      "bonus_timer": null,
+      "avg_type": "Hideout Avg",
+      "avg_value": 27740,
+      "pace": 1136200
+    },
+    {
+      "screen_num": 28,
+      "stage": "8-4",
+      "level": 8,
+      "screen_type": "Chain",
+      "board_score": 9500,
+      "running_total": 384800,
+      "lives": 3,
+      "frame": 207872,
+      "bonus_timer": null,
+      "avg_type": "Chain Avg",
+      "avg_value": 8520,
+      "pace": 1140600
+    },
+    {
+      "screen_num": 29,
+      "stage": "9-1",
+      "level": 9,
+      "screen_type": "Jungle",
+      "board_score": 16200,
+      "running_total": 401000,
+      "lives": 3,
+      "frame": 214167,
+      "bonus_timer": null,
+      "avg_type": "Jungle Avg",
+      "avg_value": 14516.667,
+      "pace": 1146700
+    },
+    {
+      "screen_num": 30,
+      "stage": "9-2",
+      "level": 9,
+      "screen_type": "Spring",
+      "board_score": 5900,
+      "running_total": 406900,
+      "lives": 3,
+      "frame": 217981,
+      "bonus_timer": null,
+      "avg_type": "Spring Avg",
+      "avg_value": 7016.667,
+      "pace": 1142700
+    },
+    {
+      "screen_num": 31,
+      "stage": "9-3",
+      "level": 9,
+      "screen_type": "Hideout",
+      "board_score": 29000,
+      "running_total": 451300,
+      "lives": 2,
+      "frame": 238080,
+      "bonus_timer": null,
+      "avg_type": "Hideout Avg",
+      "avg_value": 27950,
+      "pace": 1159900
+    },
+    {
+      "screen_num": 32,
+      "stage": "9-4",
+      "level": 9,
+      "screen_type": "Chain",
+      "board_score": 6000,
+      "running_total": 457300,
+      "lives": 2,
+      "frame": 242632,
+      "bonus_timer": null,
+      "avg_type": "Chain Avg",
+      "avg_value": 8100,
+      "pace": 1152300
+    },
+    {
+      "screen_num": 33,
+      "stage": "[10]-1",
+      "level": 10,
+      "screen_type": "Jungle",
+      "board_score": 13200,
+      "running_total": 474200,
+      "lives": 1,
+      "frame": 252777,
+      "bonus_timer": null,
+      "avg_type": "Jungle Avg",
+      "avg_value": 14328.571,
+      "pace": 1150600
+    },
+    {
+      "screen_num": 34,
+      "stage": "[10]-2",
+      "level": 10,
+      "screen_type": "Spring",
+      "board_score": 5100,
+      "running_total": 479300,
+      "lives": 1,
+      "frame": 258491,
+      "bonus_timer": null,
+      "avg_type": "Spring Avg",
+      "avg_value": 6742.857,
+      "pace": 1145700
+    }
+  ]
+}

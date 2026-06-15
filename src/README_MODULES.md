@@ -17,26 +17,26 @@ Run `build.py` before testing in MAME and before committing.
 
 Files are numbered to enforce concatenation order. Each file can reference
 anything defined in a lower-numbered file (after concatenation, they're all
-in one scope).
+in one scope). For current line counts, run `python build.py --map`.
 
-| File | Lines | Purpose |
-|---|---|---|
-| `00_header.lua` | ~7 | Version comment block |
-| `01_compat.lua` | ~100 | MAME version detection, API compatibility layer |
-| `02_config.lua` | ~267 | `detect_game()`, `GAME_CONFIGS` table |
-| `03_state.lua` | ~94 | All state tracking variables |
-| `04_output_config.lua` | ~57 | Export flags, filenames, directory creation |
-| `05_helpers.lua` | ~219 | Memory reads, formatting, pace calculation |
-| `06_dk3_helpers.lua` | ~58 | DK3 board naming, variation detection |
-| `07_recording.lua` | ~493 | `record_stage`, `record_board_dk3`, `record_level_total` |
-| `08_exports.lua` | ~632 | `export_csv`, `export_json`, `export_text` |
-| `09_summary.lua` | ~252 | Console Game Over / Session Ended summaries |
-| `10_frame_loops.lua` | ~433 | Per-frame processing (platformer + DK3) |
-| `11_init.lua` | ~154 | Startup print, callback registration, stop handler |
+| File | Purpose |
+|---|---|
+| `00_header.lua` | Version comment block |
+| `01_compat.lua` | MAME version detection, API compatibility layer |
+| `02_config.lua` | `detect_game()`, `GAME_CONFIGS` table |
+| `03_state.lua` | All state tracking variables |
+| `04_output_config.lua` | Export flags, filenames, directory creation |
+| `05_helpers.lua` | Memory reads, formatting, pace calculation |
+| `06_dk3_helpers.lua` | DK3 board naming, variation detection |
+| `07_recording.lua` | `record_stage`, `record_board_dk3`, `record_level_total` |
+| `08_exports.lua` | `export_csv`, `export_json`, `export_text` |
+| `09_summary.lua` | `print_platformer_summary`, `print_dk3_summary`, `finalize_session` (consolidates game-over / INP-end / stop-callback finalization) |
+| `10_frame_loops.lua` | `on_frame_platformer`, `on_frame_dkong3` per-frame processing |
+| `11_init.lua` | Startup banner, INP playback detection, frame + stop callback registration (stop callback delegates to `finalize_session`) |
 
 ## LuaLS Setup
 
-The `.luarc.json` in this directory tells LuaLS that cross-file variables exist
+The `.luarc.json` at the repo root tells LuaLS that cross-file variables exist
 as globals (since after concatenation, all `local` declarations share one scope).
 This suppresses most false "undefined variable" warnings.
 
@@ -47,8 +47,8 @@ variable detection, run LuaLS on the built `blossom.lua` instead.
 ## Adding a New Module
 
 1. Create `src/XX_name.lua` with an appropriate number to place it in order
-2. Add any new cross-file variable/function names to `src/.luarc.json`
-   under `Lua.diagnostics.globals`
+2. Add any new cross-file variable/function names to `.luarc.json` (at the repo
+   root) under `Lua.diagnostics.globals`
 3. Run `python build.py` and test in MAME
 
 ## Debugging Line Numbers
