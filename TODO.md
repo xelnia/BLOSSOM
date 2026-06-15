@@ -24,6 +24,11 @@ new section in JSON output. Medium refactor - consolidates multiple
 `read_score_with_rollover_check()` calls per frame into one shared local. We should indicate if the
 score changed because of end-of-stage bonus calculation.
 
+Compact/simple mode to toggle off or omit milesstone/timing/frames data reporting. Milestone, in particular, muddles neat level statistics. Why 2 instances (in-game and summary)? 
+Start End Timing reports and populates before 4-5 stage score outputs. -Should be reversed-
+Restore support for Blossom.lua to run in the scripts folder. 2.0 gives a path error.
+Move Scoring Summary below -Exported + Timing Summary + Score Milestone. Crucial compact data in cmd's resting viewpoint.
+
 ### Board-level timing
 Record frame-accurate timings of each board/level. There are no existing
 community conventions on when a board starts (when character appears? when
