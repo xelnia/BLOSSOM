@@ -232,7 +232,7 @@ local function export_json()
         json_ordered({
           { "max_diff_num", md.count },
           { "total_score", md.total_score },
-          { "start_phase_score", md.start_phase_score },
+          { "max_diff_score", md.max_diff_score },
           { "lives", md.lives },
         })
       )
@@ -718,43 +718,52 @@ local function export_text()
     -- Max difficulty milestones (score data)
     for _, md in ipairs(s.dk3_max_diff_milestones) do
       local lives_str = md.lives and string.format(" | Lives: %d", md.lives) or ""
-      file:write(
-        string.format(
-          "Start Phase %d Score: %s (%s)%s\n",
-          md.count,
+      local score_str
+      if md.total_score == md.max_diff_score then
+        score_str = format_number(md.total_score)
+      else
+        score_str = string.format(
+          "Total: %s | %d: %s",
           format_number(md.total_score),
-          format_number(md.start_phase_score),
-          lives_str
+          md.count,
+          format_number(md.max_diff_score)
         )
-      )
+      end
+      file:write(string.format("Max Difficulty %d Score: %s%s\n", md.count, score_str, lives_str))
     end
 
     -- RBS milestones (score data)
     for _, rbs in ipairs(s.dk3_rbs_milestones) do
       local lives_str = rbs.lives and string.format(" | Lives: %d", rbs.lives) or ""
-      file:write(
-        string.format(
-          "RBS %d Score: %s (%s)%s\n",
-          rbs.rbs_num,
+      local score_str
+      if rbs.total_score == rbs.rbs_score then
+        score_str = format_number(rbs.total_score)
+      else
+        score_str = string.format(
+          "Total: %s | %d: %s",
           format_number(rbs.total_score),
-          format_number(rbs.rbs_score),
-          lives_str
+          rbs.rbs_num,
+          format_number(rbs.rbs_score)
         )
-      )
+      end
+      file:write(string.format("RBS %d Score: %s%s\n", rbs.rbs_num, score_str, lives_str))
     end
 
     -- Loop milestones (score data)
     for _, loop in ipairs(s.dk3_loop_milestones) do
       local lives_str = loop.lives and string.format(" | Lives: %d", loop.lives) or ""
-      file:write(
-        string.format(
-          "Loop %d Score: %s (%s)%s\n",
-          loop.loop_num,
+      local score_str
+      if loop.total_score == loop.loop_score then
+        score_str = format_number(loop.total_score)
+      else
+        score_str = string.format(
+          "Total: %s | %d: %s",
           format_number(loop.total_score),
-          format_number(loop.loop_score),
-          lives_str
+          loop.loop_num,
+          format_number(loop.loop_score)
         )
-      )
+      end
+      file:write(string.format("Loop %d Score: %s%s\n", loop.loop_num, score_str, lives_str))
     end
 
     -- Screen type averages (max difficulty only)
@@ -867,10 +876,21 @@ local function export_text()
     end
 
     -- DK3 milestone timing
+    local prev_md_frame = nil
     for _, md in ipairs(s.dk3_max_diff_milestones) do
       local time_str = ""
       if s.start_frame then
-        time_str = string.format(" (%s)", format_duration(md.frame - s.start_frame))
+        local total_dur = md.frame - s.start_frame
+        if prev_md_frame then
+          time_str = string.format(
+            " (Total: %s | %d: %s)",
+            format_duration(total_dur),
+            md.count,
+            format_duration(md.frame - prev_md_frame)
+          )
+        else
+          time_str = string.format(" (%s)", format_duration(total_dur))
+        end
       end
       file:write(
         string.format(
@@ -880,22 +900,46 @@ local function export_text()
           time_str
         )
       )
+      prev_md_frame = md.frame
     end
 
+    local prev_rbs_frame = nil
     for _, rbs in ipairs(s.dk3_rbs_milestones) do
       local time_str = ""
       if s.start_frame then
-        time_str = string.format(" (%s)", format_duration(rbs.frame - s.start_frame))
+        local total_dur = rbs.frame - s.start_frame
+        if prev_rbs_frame then
+          time_str = string.format(
+            " (Total: %s | %d: %s)",
+            format_duration(total_dur),
+            rbs.rbs_num,
+            format_duration(rbs.frame - prev_rbs_frame)
+          )
+        else
+          time_str = string.format(" (%s)", format_duration(total_dur))
+        end
       end
       file:write(
         string.format("RBS %d: Frame %s%s\n", rbs.rbs_num, format_number(rbs.frame), time_str)
       )
+      prev_rbs_frame = rbs.frame
     end
 
+    local prev_loop_frame = nil
     for _, loop in ipairs(s.dk3_loop_milestones) do
       local time_str = ""
       if s.start_frame then
-        time_str = string.format(" (%s)", format_duration(loop.frame - s.start_frame))
+        local total_dur = loop.frame - s.start_frame
+        if prev_loop_frame then
+          time_str = string.format(
+            " (Total: %s | %d: %s)",
+            format_duration(total_dur),
+            loop.loop_num,
+            format_duration(loop.frame - prev_loop_frame)
+          )
+        else
+          time_str = string.format(" (%s)", format_duration(total_dur))
+        end
       end
       file:write(
         string.format(
@@ -905,6 +949,7 @@ local function export_text()
           time_str
         )
       )
+      prev_loop_frame = loop.frame
     end
 
     -- Elapsed times
@@ -930,10 +975,15 @@ local function export_text()
     -- SCORE MILESTONES
     if #s.score_milestones > 0 then
       file:write("\nSCORE MILESTONES\n----------------\n")
+      local prev_ms_frame = nil
       for _, ms in ipairs(s.score_milestones) do
         local time_str = ""
         if s.start_frame then
           time_str = string.format(" - %s", format_duration(ms.frame - s.start_frame))
+        end
+        local delta_str = ""
+        if prev_ms_frame then
+          delta_str = string.format(" | +%s", format_duration(ms.frame - prev_ms_frame))
         end
         local board_str = ms.board and string.format(" | Board %d", ms.board) or ""
         local timer_str = ms.bonus_timer
@@ -946,16 +996,18 @@ local function export_text()
         end
         file:write(
           string.format(
-            "%s (Frame %s%s)%s%s%s%s\n",
+            "%s (Frame %s%s)%s%s%s%s%s\n",
             format_number(ms.score),
             format_number(ms.frame),
             time_str,
+            delta_str,
             board_str,
             timer_str,
             lives_str,
             phase_str
           )
         )
+        prev_ms_frame = ms.frame
       end
     end
 
@@ -1279,10 +1331,15 @@ local function export_text()
     -- SCORE MILESTONES
     if #s.score_milestones > 0 then
       file:write("\nSCORE MILESTONES\n----------------\n")
+      local prev_ms_frame = nil
       for _, ms in ipairs(s.score_milestones) do
         local time_str = ""
         if s.start_frame then
           time_str = string.format(" - %s", format_duration(ms.frame - s.start_frame))
+        end
+        local delta_str = ""
+        if prev_ms_frame then
+          delta_str = string.format(" | +%s", format_duration(ms.frame - prev_ms_frame))
         end
         local stage_str = ms.stage and string.format(" | %s", ms.stage) or ""
         local timer_str = ms.bonus_timer
@@ -1295,16 +1352,18 @@ local function export_text()
         end
         file:write(
           string.format(
-            "%s (Frame %s%s)%s%s%s%s\n",
+            "%s (Frame %s%s)%s%s%s%s%s\n",
             format_number(ms.score),
             format_number(ms.frame),
             time_str,
+            delta_str,
             stage_str,
             timer_str,
             lives_str,
             phase_str
           )
         )
+        prev_ms_frame = ms.frame
       end
     end
 
@@ -1317,7 +1376,7 @@ local function export_text()
       if stage.is_level_total then
         file:write(
           string.format(
-          "%s: %s\n",
+            "%s: %s\n",
             format_level_label(stage.level),
             format_number(stage.score_earned)
           )

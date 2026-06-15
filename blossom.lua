@@ -569,7 +569,7 @@ local function create_session_state()
     dk3_loop_start_score = 0,
     dk3_max_diff_reached = false,
     dk3_max_diff_count = 0,
-    dk3_max_diff_milestones = {}, -- Array of {count, total_score, start_phase_score, frame}
+    dk3_max_diff_milestones = {}, -- Array of {count, total_score, max_diff_score, frame, lives}
     dk3_rbs_milestones = {},
     dk3_loop_milestones = {},
     dk3_stage_completed = false,
@@ -1108,22 +1108,22 @@ local function record_board_dk3(
     if memory_board_check == config.max_diff_board - 1 then
       s.dk3_max_diff_count = s.dk3_max_diff_count + 1
       s.dk3_max_diff_reached = true
-      local start_phase_score = total_score - s.dk3_loop_start_score
+      local max_diff_score = total_score - s.dk3_loop_start_score
 
       -- Store milestone data (parallel to RBS/loop milestones)
       table.insert(s.dk3_max_diff_milestones, {
         count = s.dk3_max_diff_count,
         total_score = total_score,
-        start_phase_score = start_phase_score,
+        max_diff_score = max_diff_score,
         frame = frame_count,
         lives = lives_remaining,
       })
 
       print(
         string.format(
-          "\n>>> MAX DIFFICULTY REACHED <<< | Start Phase %d Score: %s | Total Score: %s | Lives: %d\n",
+          "\n>>> MAX DIFFICULTY REACHED <<< | Max Difficulty %d Score: %s | Total Score: %s | Lives: %d\n",
           s.dk3_max_diff_count,
-          format_number(start_phase_score),
+          format_number(max_diff_score),
           format_number(total_score),
           lives_remaining
         )
@@ -1851,7 +1851,7 @@ local function export_json()
         json_ordered({
           { "max_diff_num", md.count },
           { "total_score", md.total_score },
-          { "start_phase_score", md.start_phase_score },
+          { "max_diff_score", md.max_diff_score },
           { "lives", md.lives },
         })
       )
@@ -2337,43 +2337,52 @@ local function export_text()
     -- Max difficulty milestones (score data)
     for _, md in ipairs(s.dk3_max_diff_milestones) do
       local lives_str = md.lives and string.format(" | Lives: %d", md.lives) or ""
-      file:write(
-        string.format(
-          "Start Phase %d Score: %s (%s)%s\n",
-          md.count,
+      local score_str
+      if md.total_score == md.max_diff_score then
+        score_str = format_number(md.total_score)
+      else
+        score_str = string.format(
+          "Total: %s | %d: %s",
           format_number(md.total_score),
-          format_number(md.start_phase_score),
-          lives_str
+          md.count,
+          format_number(md.max_diff_score)
         )
-      )
+      end
+      file:write(string.format("Max Difficulty %d Score: %s%s\n", md.count, score_str, lives_str))
     end
 
     -- RBS milestones (score data)
     for _, rbs in ipairs(s.dk3_rbs_milestones) do
       local lives_str = rbs.lives and string.format(" | Lives: %d", rbs.lives) or ""
-      file:write(
-        string.format(
-          "RBS %d Score: %s (%s)%s\n",
-          rbs.rbs_num,
+      local score_str
+      if rbs.total_score == rbs.rbs_score then
+        score_str = format_number(rbs.total_score)
+      else
+        score_str = string.format(
+          "Total: %s | %d: %s",
           format_number(rbs.total_score),
-          format_number(rbs.rbs_score),
-          lives_str
+          rbs.rbs_num,
+          format_number(rbs.rbs_score)
         )
-      )
+      end
+      file:write(string.format("RBS %d Score: %s%s\n", rbs.rbs_num, score_str, lives_str))
     end
 
     -- Loop milestones (score data)
     for _, loop in ipairs(s.dk3_loop_milestones) do
       local lives_str = loop.lives and string.format(" | Lives: %d", loop.lives) or ""
-      file:write(
-        string.format(
-          "Loop %d Score: %s (%s)%s\n",
-          loop.loop_num,
+      local score_str
+      if loop.total_score == loop.loop_score then
+        score_str = format_number(loop.total_score)
+      else
+        score_str = string.format(
+          "Total: %s | %d: %s",
           format_number(loop.total_score),
-          format_number(loop.loop_score),
-          lives_str
+          loop.loop_num,
+          format_number(loop.loop_score)
         )
-      )
+      end
+      file:write(string.format("Loop %d Score: %s%s\n", loop.loop_num, score_str, lives_str))
     end
 
     -- Screen type averages (max difficulty only)
@@ -2486,10 +2495,21 @@ local function export_text()
     end
 
     -- DK3 milestone timing
+    local prev_md_frame = nil
     for _, md in ipairs(s.dk3_max_diff_milestones) do
       local time_str = ""
       if s.start_frame then
-        time_str = string.format(" (%s)", format_duration(md.frame - s.start_frame))
+        local total_dur = md.frame - s.start_frame
+        if prev_md_frame then
+          time_str = string.format(
+            " (Total: %s | %d: %s)",
+            format_duration(total_dur),
+            md.count,
+            format_duration(md.frame - prev_md_frame)
+          )
+        else
+          time_str = string.format(" (%s)", format_duration(total_dur))
+        end
       end
       file:write(
         string.format(
@@ -2499,22 +2519,46 @@ local function export_text()
           time_str
         )
       )
+      prev_md_frame = md.frame
     end
 
+    local prev_rbs_frame = nil
     for _, rbs in ipairs(s.dk3_rbs_milestones) do
       local time_str = ""
       if s.start_frame then
-        time_str = string.format(" (%s)", format_duration(rbs.frame - s.start_frame))
+        local total_dur = rbs.frame - s.start_frame
+        if prev_rbs_frame then
+          time_str = string.format(
+            " (Total: %s | %d: %s)",
+            format_duration(total_dur),
+            rbs.rbs_num,
+            format_duration(rbs.frame - prev_rbs_frame)
+          )
+        else
+          time_str = string.format(" (%s)", format_duration(total_dur))
+        end
       end
       file:write(
         string.format("RBS %d: Frame %s%s\n", rbs.rbs_num, format_number(rbs.frame), time_str)
       )
+      prev_rbs_frame = rbs.frame
     end
 
+    local prev_loop_frame = nil
     for _, loop in ipairs(s.dk3_loop_milestones) do
       local time_str = ""
       if s.start_frame then
-        time_str = string.format(" (%s)", format_duration(loop.frame - s.start_frame))
+        local total_dur = loop.frame - s.start_frame
+        if prev_loop_frame then
+          time_str = string.format(
+            " (Total: %s | %d: %s)",
+            format_duration(total_dur),
+            loop.loop_num,
+            format_duration(loop.frame - prev_loop_frame)
+          )
+        else
+          time_str = string.format(" (%s)", format_duration(total_dur))
+        end
       end
       file:write(
         string.format(
@@ -2524,6 +2568,7 @@ local function export_text()
           time_str
         )
       )
+      prev_loop_frame = loop.frame
     end
 
     -- Elapsed times
@@ -2549,10 +2594,15 @@ local function export_text()
     -- SCORE MILESTONES
     if #s.score_milestones > 0 then
       file:write("\nSCORE MILESTONES\n----------------\n")
+      local prev_ms_frame = nil
       for _, ms in ipairs(s.score_milestones) do
         local time_str = ""
         if s.start_frame then
           time_str = string.format(" - %s", format_duration(ms.frame - s.start_frame))
+        end
+        local delta_str = ""
+        if prev_ms_frame then
+          delta_str = string.format(" | +%s", format_duration(ms.frame - prev_ms_frame))
         end
         local board_str = ms.board and string.format(" | Board %d", ms.board) or ""
         local timer_str = ms.bonus_timer
@@ -2565,16 +2615,18 @@ local function export_text()
         end
         file:write(
           string.format(
-            "%s (Frame %s%s)%s%s%s%s\n",
+            "%s (Frame %s%s)%s%s%s%s%s\n",
             format_number(ms.score),
             format_number(ms.frame),
             time_str,
+            delta_str,
             board_str,
             timer_str,
             lives_str,
             phase_str
           )
         )
+        prev_ms_frame = ms.frame
       end
     end
 
@@ -2898,10 +2950,15 @@ local function export_text()
     -- SCORE MILESTONES
     if #s.score_milestones > 0 then
       file:write("\nSCORE MILESTONES\n----------------\n")
+      local prev_ms_frame = nil
       for _, ms in ipairs(s.score_milestones) do
         local time_str = ""
         if s.start_frame then
           time_str = string.format(" - %s", format_duration(ms.frame - s.start_frame))
+        end
+        local delta_str = ""
+        if prev_ms_frame then
+          delta_str = string.format(" | +%s", format_duration(ms.frame - prev_ms_frame))
         end
         local stage_str = ms.stage and string.format(" | %s", ms.stage) or ""
         local timer_str = ms.bonus_timer
@@ -2914,16 +2971,18 @@ local function export_text()
         end
         file:write(
           string.format(
-            "%s (Frame %s%s)%s%s%s%s\n",
+            "%s (Frame %s%s)%s%s%s%s%s\n",
             format_number(ms.score),
             format_number(ms.frame),
             time_str,
+            delta_str,
             stage_str,
             timer_str,
             lives_str,
             phase_str
           )
         )
+        prev_ms_frame = ms.frame
       end
     end
 
@@ -2936,7 +2995,7 @@ local function export_text()
       if stage.is_level_total then
         file:write(
           string.format(
-          "%s: %s\n",
+            "%s: %s\n",
             format_level_label(stage.level),
             format_number(stage.score_earned)
           )
@@ -3011,6 +3070,7 @@ local function print_platformer_summary(header_text, current_score)
   end
 
   print(string.format("\n=== %s ===", header_text))
+  print("\nSCORING SUMMARY\n---------------")
   print(string.format("Final Score: %s", format_number(current_score)))
   if final_stage ~= "" then
     print(string.format("Final Stage: %s", final_stage))
@@ -3175,15 +3235,48 @@ local function print_platformer_summary(header_text, current_score)
     print(string.format("Average Life (stages): %s", format_number_decimal(life_stats.avg_stages)))
   end
 
-  -- Timing summary (ordered shortest to longest expected duration)
-  print("")
+  -- TIMING SUMMARY
+  local playing_frames = get_playing_time_frames()
+  local has_plat_timing = playing_frames
+    or (s.speedrun_start_frame and s.speedrun_end_frame)
+    or (s.start_frame and s.start_phase_end_frame)
+    or (s.speedrun_start_frame and s.killscreen_frame)
+    or (s.start_frame and (s.game_over_vram_frame or s.end_frame))
+
+  if has_plat_timing then
+    print("\nTIMING SUMMARY\n--------------")
+  end
+
+  -- Elapsed times (ordered shortest to longest expected duration)
+  if s.speedrun_start_frame and s.speedrun_end_frame then
+    local dur = s.speedrun_end_frame - s.speedrun_start_frame
+    print(string.format("Unofficial Speedrun Start Time: %s", format_duration(dur)))
+  end
+
+  if s.start_frame and s.start_phase_end_frame then
+    local dur = s.start_phase_end_frame - s.start_frame
+    print(string.format("Unofficial Standard Start Time: %s", format_duration(dur)))
+  end
+
+  if s.speedrun_start_frame and s.killscreen_frame then
+    local dur = s.killscreen_frame - s.speedrun_start_frame
+    print(string.format("Unofficial Speedrun Killscreen Time: %s", format_duration(dur)))
+  end
+
+  if playing_frames then
+    print(string.format("Unofficial Full Game Time: %s", format_duration(playing_frames)))
+  end
+
+  -- Frame ranges (same order as elapsed times)
+  if has_plat_timing then
+    print("")
+  end
 
   if s.speedrun_start_frame and s.speedrun_end_frame then
     local dur = s.speedrun_end_frame - s.speedrun_start_frame
     print(
       string.format(
-        "Unofficial Speedrun Start: %s | Frame %s - %s (%s frames)",
-        format_duration(dur),
+        "Speedrun Start Frames: %s - %s (%s frames)",
         format_number(s.speedrun_start_frame),
         format_number(s.speedrun_end_frame),
         format_number(dur)
@@ -3195,8 +3288,7 @@ local function print_platformer_summary(header_text, current_score)
     local dur = s.start_phase_end_frame - s.start_frame
     print(
       string.format(
-        "Unofficial Standard Start: %s | Frame %s - %s (%s frames)",
-        format_duration(dur),
+        "Standard Start Frames: %s - %s (%s frames)",
         format_number(s.start_frame),
         format_number(s.start_phase_end_frame),
         format_number(dur)
@@ -3208,8 +3300,7 @@ local function print_platformer_summary(header_text, current_score)
     local dur = s.killscreen_frame - s.speedrun_start_frame
     print(
       string.format(
-        "Unofficial Speedrun Killscreen: %s | Frame %s - %s (%s frames)",
-        format_duration(dur),
+        "Speedrun Killscreen Frames: %s - %s (%s frames)",
         format_number(s.speedrun_start_frame),
         format_number(s.killscreen_frame),
         format_number(dur)
@@ -3218,17 +3309,55 @@ local function print_platformer_summary(header_text, current_score)
   end
 
   if s.start_frame and (s.game_over_vram_frame or s.end_frame) then
-    local final_frame = s.game_over_vram_frame or s.end_frame
-    local dur = final_frame - s.start_frame
+    local end_f = s.game_over_vram_frame or s.end_frame
+    local dur = end_f - s.start_frame
     print(
       string.format(
-        "Unofficial Full Game: %s | Frame %s - %s (%s frames)",
-        format_duration(dur),
+        "Full Game Frames: %s - %s (%s frames)",
         format_number(s.start_frame),
-        format_number(final_frame),
+        format_number(end_f),
         format_number(dur)
       )
     )
+  end
+
+  -- SCORE MILESTONES
+  if #s.score_milestones > 0 then
+    print("\nSCORE MILESTONES\n----------------")
+    local prev_ms_frame = nil
+    for _, ms in ipairs(s.score_milestones) do
+      local time_str = ""
+      if s.start_frame then
+        time_str = string.format(" - %s", format_duration(ms.frame - s.start_frame))
+      end
+      local delta_str = ""
+      if prev_ms_frame then
+        delta_str = string.format(" | +%s", format_duration(ms.frame - prev_ms_frame))
+      end
+      local stage_str = ms.stage and string.format(" | %s", ms.stage) or ""
+      local timer_str = ms.bonus_timer
+          and string.format(" | Timer: %s", format_number(ms.bonus_timer))
+        or ""
+      local lives_str = ms.lives and string.format(" | Lives: %d", ms.lives) or ""
+      local phase_str = ""
+      if ms.during_gameplay == false then
+        phase_str = " [stage end]"
+      end
+      print(
+        string.format(
+          "%s (Frame %s%s)%s%s%s%s%s",
+          format_number(ms.score),
+          format_number(ms.frame),
+          time_str,
+          delta_str,
+          stage_str,
+          timer_str,
+          lives_str,
+          phase_str
+        )
+      )
+      prev_ms_frame = ms.frame
+    end
   end
 end
 
@@ -3244,6 +3373,7 @@ local function print_dk3_summary(header_text, current_score)
   end
 
   print(string.format("\n=== %s ===", header_text))
+  print("\nSCORING SUMMARY\n---------------")
   print(string.format("Final Score: %s", format_number(current_score)))
 
   -- 5 Lives Score (headline stat, shown directly under Final Score)
@@ -3264,43 +3394,52 @@ local function print_dk3_summary(header_text, current_score)
   -- Display Max Difficulty milestones
   for _, md in ipairs(s.dk3_max_diff_milestones) do
     local lives_str = md.lives and string.format(" | Lives: %d", md.lives) or ""
-    print(
-      string.format(
-        "Start Phase %d Score: %s (%s)%s",
-        md.count,
+    local score_str
+    if md.total_score == md.max_diff_score then
+      score_str = format_number(md.total_score)
+    else
+      score_str = string.format(
+        "Total: %s | %d: %s",
         format_number(md.total_score),
-        format_number(md.start_phase_score),
-        lives_str
+        md.count,
+        format_number(md.max_diff_score)
       )
-    )
+    end
+    print(string.format("Max Difficulty %d Score: %s%s", md.count, score_str, lives_str))
   end
 
   -- Display RBS milestones
   for _, rbs in ipairs(s.dk3_rbs_milestones) do
     local lives_str = rbs.lives and string.format(" | Lives: %d", rbs.lives) or ""
-    print(
-      string.format(
-        "RBS %d Score: %s (%s)%s",
-        rbs.rbs_num,
+    local score_str
+    if rbs.total_score == rbs.rbs_score then
+      score_str = format_number(rbs.total_score)
+    else
+      score_str = string.format(
+        "Total: %s | %d: %s",
         format_number(rbs.total_score),
-        format_number(rbs.rbs_score),
-        lives_str
+        rbs.rbs_num,
+        format_number(rbs.rbs_score)
       )
-    )
+    end
+    print(string.format("RBS %d Score: %s%s", rbs.rbs_num, score_str, lives_str))
   end
 
   -- Display Loop milestones
   for _, loop in ipairs(s.dk3_loop_milestones) do
     local lives_str = loop.lives and string.format(" | Lives: %d", loop.lives) or ""
-    print(
-      string.format(
-        "Loop %d Score: %s (%s)%s",
-        loop.loop_num,
+    local score_str
+    if loop.total_score == loop.loop_score then
+      score_str = format_number(loop.total_score)
+    else
+      score_str = string.format(
+        "Total: %s | %d: %s",
         format_number(loop.total_score),
-        format_number(loop.loop_score),
-        lives_str
+        loop.loop_num,
+        format_number(loop.loop_score)
       )
-    )
+    end
+    print(string.format("Loop %d Score: %s%s", loop.loop_num, score_str, lives_str))
   end
 
   -- Screen type averages (only shown if max difficulty was reached)
@@ -3395,31 +3534,75 @@ local function print_dk3_summary(header_text, current_score)
   print(string.format("Recorded Deaths: %d", s.death_count))
   print(string.format("Total Death Points: %s", format_number(s.total_death_points)))
 
-  -- Timing summary (DK3 milestones, then full game)
-  print("")
+  -- TIMING SUMMARY
+  local playing_frames = get_playing_time_frames()
+  local has_dk3_timing = playing_frames
+    or #s.dk3_max_diff_milestones > 0
+    or #s.dk3_rbs_milestones > 0
+    or #s.dk3_loop_milestones > 0
+    or (s.start_frame and (s.game_over_vram_frame or s.end_frame))
 
+  if has_dk3_timing then
+    print("\nTIMING SUMMARY\n--------------")
+  end
+
+  local prev_md_frame = nil
   for _, md in ipairs(s.dk3_max_diff_milestones) do
     local time_str = ""
     if s.start_frame then
-      time_str = string.format(" | %s", format_duration(md.frame - s.start_frame))
+      local total_dur = md.frame - s.start_frame
+      if prev_md_frame then
+        time_str = string.format(
+          " (Total: %s | %d: %s)",
+          format_duration(total_dur),
+          md.count,
+          format_duration(md.frame - prev_md_frame)
+        )
+      else
+        time_str = string.format(" (%s)", format_duration(total_dur))
+      end
     end
     print(
       string.format("Max Difficulty %d: Frame %s%s", md.count, format_number(md.frame), time_str)
     )
+    prev_md_frame = md.frame
   end
 
+  local prev_rbs_frame = nil
   for _, rbs in ipairs(s.dk3_rbs_milestones) do
     local time_str = ""
     if s.start_frame then
-      time_str = string.format(" | %s", format_duration(rbs.frame - s.start_frame))
+      local total_dur = rbs.frame - s.start_frame
+      if prev_rbs_frame then
+        time_str = string.format(
+          " (Total: %s | %d: %s)",
+          format_duration(total_dur),
+          rbs.rbs_num,
+          format_duration(rbs.frame - prev_rbs_frame)
+        )
+      else
+        time_str = string.format(" (%s)", format_duration(total_dur))
+      end
     end
     print(string.format("RBS %d: Frame %s%s", rbs.rbs_num, format_number(rbs.frame), time_str))
+    prev_rbs_frame = rbs.frame
   end
 
+  local prev_loop_frame = nil
   for _, loop in ipairs(s.dk3_loop_milestones) do
     local time_str = ""
     if s.start_frame then
-      time_str = string.format(" | %s", format_duration(loop.frame - s.start_frame))
+      local total_dur = loop.frame - s.start_frame
+      if prev_loop_frame then
+        time_str = string.format(
+          " (Total: %s | %d: %s)",
+          format_duration(total_dur),
+          loop.loop_num,
+          format_duration(loop.frame - prev_loop_frame)
+        )
+      else
+        time_str = string.format(" (%s)", format_duration(total_dur))
+      end
     end
     print(
       string.format(
@@ -3429,20 +3612,64 @@ local function print_dk3_summary(header_text, current_score)
         time_str
       )
     )
+    prev_loop_frame = loop.frame
+  end
+
+  if playing_frames then
+    print(string.format("Unofficial Full Game Time: %s", format_duration(playing_frames)))
   end
 
   if s.start_frame and (s.game_over_vram_frame or s.end_frame) then
-    local final_frame = s.game_over_vram_frame or s.end_frame
-    local dur = final_frame - s.start_frame
+    local end_f = s.game_over_vram_frame or s.end_frame
+    local dur = end_f - s.start_frame
+    print("")
     print(
       string.format(
-        "Unofficial Full Game: %s | Frame %s - %s (%s frames)",
-        format_duration(dur),
+        "Full Game Frames: %s - %s (%s frames)",
         format_number(s.start_frame),
-        format_number(final_frame),
+        format_number(end_f),
         format_number(dur)
       )
     )
+  end
+
+  -- SCORE MILESTONES
+  if #s.score_milestones > 0 then
+    print("\nSCORE MILESTONES\n----------------")
+    local prev_ms_frame = nil
+    for _, ms in ipairs(s.score_milestones) do
+      local time_str = ""
+      if s.start_frame then
+        time_str = string.format(" - %s", format_duration(ms.frame - s.start_frame))
+      end
+      local delta_str = ""
+      if prev_ms_frame then
+        delta_str = string.format(" | +%s", format_duration(ms.frame - prev_ms_frame))
+      end
+      local board_str = ms.board and string.format(" | Board %d", ms.board) or ""
+      local timer_str = ms.bonus_timer
+          and string.format(" | Timer: %s", format_number(ms.bonus_timer))
+        or ""
+      local lives_str = ms.lives and string.format(" | Lives: %d", ms.lives) or ""
+      local phase_str = ""
+      if ms.during_gameplay == false then
+        phase_str = " [stage end]"
+      end
+      print(
+        string.format(
+          "%s (Frame %s%s)%s%s%s%s%s",
+          format_number(ms.score),
+          format_number(ms.frame),
+          time_str,
+          delta_str,
+          board_str,
+          timer_str,
+          lives_str,
+          phase_str
+        )
+      )
+      prev_ms_frame = ms.frame
+    end
   end
 end
 

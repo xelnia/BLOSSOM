@@ -89,7 +89,7 @@ local function create_session_state()
     dk3_loop_start_score = 0,
     dk3_max_diff_reached = false,
     dk3_max_diff_count = 0,
-    dk3_max_diff_milestones = {}, -- Array of {count, total_score, start_phase_score, frame}
+    dk3_max_diff_milestones = {}, -- Array of {count, total_score, max_diff_score, frame, lives}
     dk3_rbs_milestones = {},
     dk3_loop_milestones = {},
     dk3_stage_completed = false,

@@ -62,6 +62,7 @@
     "calculate_22_4_pace",
     "get_board_name_dk3",
     "detect_variation_dk3",
+    "get_playing_time_frames",
 
     "record_board_dk3",
     "record_stage",

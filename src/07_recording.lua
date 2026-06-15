@@ -95,22 +95,22 @@ local function record_board_dk3(
     if memory_board_check == config.max_diff_board - 1 then
       s.dk3_max_diff_count = s.dk3_max_diff_count + 1
       s.dk3_max_diff_reached = true
-      local start_phase_score = total_score - s.dk3_loop_start_score
+      local max_diff_score = total_score - s.dk3_loop_start_score
 
       -- Store milestone data (parallel to RBS/loop milestones)
       table.insert(s.dk3_max_diff_milestones, {
         count = s.dk3_max_diff_count,
         total_score = total_score,
-        start_phase_score = start_phase_score,
+        max_diff_score = max_diff_score,
         frame = frame_count,
         lives = lives_remaining,
       })
 
       print(
         string.format(
-          "\n>>> MAX DIFFICULTY REACHED <<< | Start Phase %d Score: %s | Total Score: %s | Lives: %d\n",
+          "\n>>> MAX DIFFICULTY REACHED <<< | Max Difficulty %d Score: %s | Total Score: %s | Lives: %d\n",
           s.dk3_max_diff_count,
-          format_number(start_phase_score),
+          format_number(max_diff_score),
           format_number(total_score),
           lives_remaining
         )
