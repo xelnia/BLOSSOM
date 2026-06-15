@@ -1315,8 +1315,13 @@ local function export_text()
 
     for _, stage in ipairs(s.stage_data) do
       if stage.is_level_total then
-        local level_display = format_level_for_display(stage.level)
-        file:write(string.format("L%s: %s\n", level_display, format_number(stage.score_earned)))
+        file:write(
+          string.format(
+          "%s: %s\n",
+            format_level_label(stage.level),
+            format_number(stage.score_earned)
+          )
+        )
         file:write("---\n")
         current_output_level = stage.level
       else

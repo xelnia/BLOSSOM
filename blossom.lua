@@ -860,7 +860,7 @@ local function format_level_for_display(level)
   if config.level_display_bug then
     if level >= 10 and level <= 16 then
       return string.format("[%d]", level)
-    elseif level >= 17 and level <= 21 then
+    elseif level >= 17 and level <= 22 then
       return string.char(65 + (level - 17)) -- A-F
     else
       return tostring(level)
@@ -874,6 +874,16 @@ end
 local function get_stage_name(level, position)
   local level_display = format_level_for_display(level)
   return string.format("%s-%d", level_display, position)
+end
+
+-- Format a level-only label like "L1", "L[11]", "L-A" (hyphen inserted for alpha labels)
+local function format_level_label(level)
+  local level_display = format_level_for_display(level)
+  if level_display:match("^%a$") then
+    return "L-" .. level_display
+  else
+    return "L" .. level_display
+  end
 end
 
 -- PACE HELPERS
@@ -1291,7 +1301,7 @@ local function record_stage(
       stage_label = get_stage_name(level, position)
     else
       -- All other screens appear 1x per level - show level only
-      stage_label = string.format("L%s", level_display)
+      stage_label = format_level_label(level)
     end
 
     -- Store score in appropriate screen type array
@@ -1396,7 +1406,7 @@ local function record_level_total(level, score_earned, total_score)
     local level_display = format_level_for_display(level)
     table.insert(
       s.level_scores,
-      { score = score_earned, label = string.format("L%s", level_display), level = level }
+      { score = score_earned, label = format_level_label(level), level = level }
     )
   end
 
@@ -2924,8 +2934,13 @@ local function export_text()
 
     for _, stage in ipairs(s.stage_data) do
       if stage.is_level_total then
-        local level_display = format_level_for_display(stage.level)
-        file:write(string.format("L%s: %s\n", level_display, format_number(stage.score_earned)))
+        file:write(
+          string.format(
+          "%s: %s\n",
+            format_level_label(stage.level),
+            format_number(stage.score_earned)
+          )
+        )
         file:write("---\n")
         current_output_level = stage.level
       else

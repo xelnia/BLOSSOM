@@ -288,7 +288,7 @@ local function record_stage(
       stage_label = get_stage_name(level, position)
     else
       -- All other screens appear 1x per level - show level only
-      stage_label = string.format("L%s", level_display)
+      stage_label = format_level_label(level)
     end
 
     -- Store score in appropriate screen type array
@@ -393,7 +393,7 @@ local function record_level_total(level, score_earned, total_score)
     local level_display = format_level_for_display(level)
     table.insert(
       s.level_scores,
-      { score = score_earned, label = string.format("L%s", level_display), level = level }
+      { score = score_earned, label = format_level_label(level), level = level }
     )
   end
 

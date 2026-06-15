@@ -156,7 +156,7 @@ local function format_level_for_display(level)
   if config.level_display_bug then
     if level >= 10 and level <= 16 then
       return string.format("[%d]", level)
-    elseif level >= 17 and level <= 21 then
+    elseif level >= 17 and level <= 22 then
       return string.char(65 + (level - 17)) -- A-F
     else
       return tostring(level)
@@ -170,6 +170,16 @@ end
 local function get_stage_name(level, position)
   local level_display = format_level_for_display(level)
   return string.format("%s-%d", level_display, position)
+end
+
+-- Format a level-only label like "L1", "L[11]", "L-A" (hyphen inserted for alpha labels)
+local function format_level_label(level)
+  local level_display = format_level_for_display(level)
+  if level_display:match("^%a$") then
+    return "L-" .. level_display
+  else
+    return "L" .. level_display
+  end
 end
 
 -- PACE HELPERS
