@@ -6,7 +6,7 @@
 -- Supported MAME versions: 0.175+
 -- Exports scoring data and summary in CSV, JSON, and TXT format
 
-local BLOSSOM_VERSION = "2.0.0"
+local BLOSSOM_VERSION = "2.0.1"
 
 -- Export toggles: set to false to suppress specific output formats
 local EXPORT_CSV = true
@@ -533,6 +533,9 @@ local function create_session_state()
     start_phase_deaths = 0, -- Count of deaths during start phase
     score_offset = 0, -- Tracks million-point rollovers
     game_over_processed = false, -- Prevents double-printing at game over
+
+    completed_bonus_timer = 0, -- Platformer: bonus timer captured at stage completion
+    dk3_completed_bonus_timer = 0, -- DK3: bonus timer captured at stage completion
 
     -- Deferred death recording (score may settle after mode changes to DEAD)
     -- Platformer game_mode transitions directly to DEAD, so settlement fires
@@ -4170,6 +4173,7 @@ local function on_frame_platformer()
       s.stage_completed_mode = game_mode
       s.completed_screen_type = s.prev_screen_type
       s.completed_level = s.prev_level
+      s.completed_bonus_timer = read_bonus_timer()
     end
   end
 
@@ -4189,7 +4193,7 @@ local function on_frame_platformer()
       false,
       nil,
       lives,
-      nil
+      s.completed_bonus_timer
     )
 
     -- Add to level score (only for completed stages, not deaths)
@@ -4462,6 +4466,11 @@ local function on_frame_dkong3()
     s.dk3_prev_level = level
   end
 
+  -- BONUS TIMER CAPTURE: Read timer on last frame of gameplay before bonus countdown
+  if s.dk3_prev_game_mode == config.modes.gameplay and game_mode == config.modes.bonus_calc then
+    s.dk3_completed_bonus_timer = read_bonus_timer()
+  end
+
   -- STAGE COMPLETION: Detect when bonus message appears (score finalized)
   if s.dk3_prev_game_mode == config.modes.bonus_calc and game_mode == config.modes.bonus_msg then
     s.dk3_stage_completed = true
@@ -4486,7 +4495,7 @@ local function on_frame_dkong3()
       nil,
       lives,
       s.dk3_completed_screen_type,
-      nil
+      s.dk3_completed_bonus_timer
     )
 
     -- After recording board 256, 512, 768, etc., increment loop counter and set new loop_start_score

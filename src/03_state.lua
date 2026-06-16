@@ -52,6 +52,9 @@ local function create_session_state()
     score_offset = 0, -- Tracks million-point rollovers
     game_over_processed = false, -- Prevents double-printing at game over
 
+    completed_bonus_timer = 0, -- Platformer: bonus timer captured at stage completion
+    dk3_completed_bonus_timer = 0, -- DK3: bonus timer captured at stage completion
+
     -- Deferred death recording (score may settle after mode changes to DEAD)
     -- Platformer game_mode transitions directly to DEAD, so settlement fires
     -- on the same frame as board start (execution order protects stage_start_score).

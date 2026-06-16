@@ -6,7 +6,7 @@
 -- Supported MAME versions: 0.175+
 -- Exports scoring data and summary in CSV, JSON, and TXT format
 
-local BLOSSOM_VERSION = "2.0.0"
+local BLOSSOM_VERSION = "2.0.1"
 
 -- Export toggles: set to false to suppress specific output formats
 local EXPORT_CSV = true

@@ -96,7 +96,7 @@ that point
 
 See the [output_examples](output_examples/) directory for sample output files.
 
-> **Note:** When the bonus timer value is appended to a killscreen death in any output, the value reflects the internal bug state, not the corrupted display value.
+> **Note:** When the bonus timer value is appended to a killscreen death or completion in any output, the value reflects the internal bug state, not the corrupted display value.
 
 ## Configuration
 
@@ -168,7 +168,7 @@ python build.py --map     # Show which source file owns each line range
 
 The build script enforces LF line endings on the distributed `blossom.lua` regardless of source file endings.
 
-Example module map after build:
+Example module map after build (these values might not be current):
 ```text
 Line Range Map:
 Source File                      Lines  Count
@@ -176,19 +176,19 @@ Source File                      Lines  Count
 00_header.lua                     1-14     14
 01_compat.lua                   16-149    134
 02_config.lua                  151-481    331
-03_state.lua                   483-651    169
-04_output_config.lua           653-707     55
-05_helpers.lua                 709-957    249
-06_dk3_helpers.lua            959-1016     58
-07_recording.lua             1018-1620    603
-08_exports.lua               1622-3049   1428
-09_summary.lua               3051-3857    807
-10_frame_loops.lua           3859-4573    715
-11_init.lua                  4575-4615     41
+03_state.lua                   483-654    172
+04_output_config.lua           656-710     55
+05_helpers.lua                 712-960    249
+06_dk3_helpers.lua            962-1019     58
+07_recording.lua             1021-1623    603
+08_exports.lua               1625-3052   1428
+09_summary.lua               3054-3860    807
+10_frame_loops.lua           3862-4582    721
+11_init.lua                  4584-4624     41
 ---------------------------------------------
 Separators (1 between files)               11
-Total source lines                       4604
-Final blossom.lua length                 4615
+Total source lines                       4613
+Final blossom.lua length                 4624
 ```
 
 ## Timing Definitions

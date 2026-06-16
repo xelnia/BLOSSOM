@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+## [2.0.1] - 2026-06-15
+
+### Fixed
+
+- Bonus timer value not captured for completed stages (was `null`/empty);
+  now reads timer at stage completion detection time (#1)
+
 ## [2.0.0] - 2026-06-14
 
 A comprehensive rewrite focused on correctness, richer output, broader MAME
