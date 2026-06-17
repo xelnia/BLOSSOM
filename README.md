@@ -123,7 +123,7 @@ These control which sections appear in the MAME console during and after playbac
 | `SHOW_RUNNING_LOG` | Real-time per-board prints, milestone alerts, and `[Timing]` events during playback |
 | `SHOW_SCORING_SUMMARY` | Final score, board progress, pace, screen/level averages, death points |
 | `SHOW_LIVES_SUMMARY` | Recorded lives/deaths, per-life statistics (first, last, longest, shortest, average) |
-| `SHOW_TIMING_SUMMARY` | Elapsed times and frame ranges for speedrun, standard start, killscreen, and full game |
+| `SHOW_TIMING_SUMMARY` | Elapsed times and frame ranges for speedrun and standard start, killscreen speedrun, and any full game |
 | `SHOW_SCORE_MILESTONES` | 100,000-point milestone log with board, timer, lives, and elapsed time |
 
 For a compact scorer view, set everything to `false` except `SHOW_SCORING_SUMMARY`.
