@@ -6,7 +6,14 @@
 -- Supported MAME versions: 0.175+
 -- Exports scoring data and summary in CSV, JSON, and TXT format
 
-local BLOSSOM_VERSION = "2.0.1"
+local BLOSSOM_VERSION = "2.1.0"
+
+-- Console display toggles (these do not affect export files)
+local SHOW_RUNNING_LOG = true
+local SHOW_SCORING_SUMMARY = true
+local SHOW_LIVES_SUMMARY = true
+local SHOW_TIMING_SUMMARY = true
+local SHOW_SCORE_MILESTONES = true
 
 -- Export toggles: set to false to suppress specific output formats
 local EXPORT_CSV = true

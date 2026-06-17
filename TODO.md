@@ -24,10 +24,7 @@ new section in JSON output. Medium refactor - consolidates multiple
 `read_score_with_rollover_check()` calls per frame into one shared local. We should indicate if the
 score changed because of end-of-stage bonus calculation.
 
-Compact/simple mode to toggle off or omit milesstone/timing/frames data reporting. Milestone, in particular, muddles neat level statistics. Why 2 instances (in-game and summary)? 
-Start End Timing reports and populates before 4-5 stage score outputs. -Should be reversed-
-Restore support for Blossom.lua to run in the scripts folder. 2.0 gives a path error.
-Move Scoring Summary below -Exported + Timing Summary + Score Milestone. Crucial compact data in cmd's resting viewpoint.
+
 
 ### Board-level timing
 Record frame-accurate timings of each board/level. There are no existing
@@ -142,6 +139,14 @@ rather than a hard requirement. Research tasks:
 - [x] State table refactor - 85 per-session variables wrapped in `s` table
 - [x] `finalize_session()` consolidation of session-ending paths
 - [x] Modular source layout under `src/` with `build.py`
+- [x] Compact/simple mode to toggle off or omit milesstone/timing/frames data reporting. Milestone,
+      in particular, muddles neat level statistics. Why 2 instances (in-game and summary)?
+    - Toggles implemented
+- [x] Restore support for Blossom.lua to run in the scripts folder. 2.0 gives a path error.
+    - Never technically broken, but README documentation wasn't correct.
+- [x] Move Scoring Summary below -Exported + Timing Summary + Score Milestone. Crucial compact
+      data in cmd's resting viewpoint.
+    - Toggles implemented. Order not changed.
 
 ## Rejected / Won't Do
 
@@ -161,3 +166,12 @@ rather than a hard requirement. Research tasks:
 - "Pace" for DK3 / projected RBS and Loop scores.
     - Implemented extended stats (best/worst lives, 5 Lives Score,
       first/last life scores) instead.
+- Start End Timing reports and populates before 4-5 stage score outputs. -Should be reversed-
+    - Running log is chronological. Start end timing happens before 4-5 stage score is finalized.
+      Current behavior is correct.
+
+
+
+
+
+

@@ -23,10 +23,10 @@ BLOSSOM works in **playback mode only** (`-playback`/`-pb`), as WolfMAME disable
 
 ## Quick Start
 
-Place `blossom.lua` in your MAME directory and run:
+Place `blossom.lua` in your MAME `scripts` directory and run:
 
 ```
-mame dkong -pb your_game.inp -autoboot_script blossom.lua
+mame dkong -pb your_game.inp -autoboot_script scripts/blossom.lua
 ```
 
 Or specify a full path:
@@ -92,15 +92,11 @@ that point
 - Automatic API detection handles differences across MAME versions
 - Single-file distribution - just `blossom.lua`, no dependencies
 
-## Output Examples
-
-See the [output_examples](output_examples/) directory for sample output files.
-
-> **Note:** When the bonus timer value is appended to a killscreen death or completion in any output, the value reflects the internal bug state, not the corrupted display value.
-
 ## Configuration
 
-At the top of `blossom.lua`, three flags control which output files are generated:
+At the top of `blossom.lua`, toggles control output behavior. All default to `true`.
+
+### Export Toggles
 
 ```lua
 local EXPORT_CSV = true
@@ -108,7 +104,31 @@ local EXPORT_JSON = true
 local EXPORT_TEXT = true
 ```
 
-Set any to `false` to suppress that format.
+Set any to `false` to suppress that output file.
+
+### Console Display Toggles
+
+```lua
+local SHOW_RUNNING_LOG = true
+local SHOW_SCORING_SUMMARY = true
+local SHOW_LIVES_SUMMARY = true
+local SHOW_TIMING_SUMMARY = true
+local SHOW_SCORE_MILESTONES = true
+```
+
+These control which sections appear in the MAME console during and after playback. Export files always contain complete session data regardless of these settings.
+
+| Toggle | Controls |
+|--------|----------|
+| `SHOW_RUNNING_LOG` | Real-time per-board prints, milestone alerts, and `[Timing]` events during playback |
+| `SHOW_SCORING_SUMMARY` | Final score, board progress, pace, screen/level averages, death points |
+| `SHOW_LIVES_SUMMARY` | Recorded lives/deaths, per-life statistics (first, last, longest, shortest, average) |
+| `SHOW_TIMING_SUMMARY` | Elapsed times and frame ranges for speedrun, standard start, killscreen, and full game |
+| `SHOW_SCORE_MILESTONES` | 100,000-point milestone log with board, timer, lives, and elapsed time |
+
+For a compact scorer view, set everything to `false` except `SHOW_SCORING_SUMMARY`.
+
+> **Note:** When the bonus timer value is appended to a killscreen death or completion in any output, the value reflects the internal bug state, not the corrupted display value.
 
 ## How It Works
 
@@ -173,22 +193,22 @@ Example module map after build (these values might not be current):
 Line Range Map:
 Source File                      Lines  Count
 ---------------------------------------------
-00_header.lua                     1-14     14
-01_compat.lua                   16-149    134
-02_config.lua                  151-481    331
-03_state.lua                   483-654    172
-04_output_config.lua           656-710     55
-05_helpers.lua                 712-960    249
-06_dk3_helpers.lua            962-1019     58
-07_recording.lua             1021-1623    603
-08_exports.lua               1625-3052   1428
-09_summary.lua               3054-3860    807
-10_frame_loops.lua           3862-4582    721
-11_init.lua                  4584-4624     41
+00_header.lua                     1-21     21
+01_compat.lua                   23-156    134
+02_config.lua                  158-488    331
+03_state.lua                   490-661    172
+04_output_config.lua           663-717     55
+05_helpers.lua                 719-967    249
+06_dk3_helpers.lua            969-1026     58
+07_recording.lua             1028-1642    615
+08_exports.lua               1644-3071   1428
+09_summary.lua               3073-3944    872
+10_frame_loops.lua           3946-4687    742
+11_init.lua                  4689-4729     41
 ---------------------------------------------
 Separators (1 between files)               11
-Total source lines                       4613
-Final blossom.lua length                 4624
+Total source lines                       4718
+Final blossom.lua length                 4729
 ```
 
 ## Timing Definitions

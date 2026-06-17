@@ -35,6 +35,11 @@
     "session_banner_pending",
     "session_pending_timing_msg",
 
+    "SHOW_RUNNING_LOG",
+    "SHOW_SCORING_SUMMARY",
+    "SHOW_LIVES_SUMMARY",
+    "SHOW_TIMING_SUMMARY",
+    "SHOW_SCORE_MILESTONES",
     "EXPORT_CSV",
     "EXPORT_JSON",
     "EXPORT_TEXT",

@@ -60,33 +60,35 @@ local function record_board_dk3(
   end
 
   -- Console output
-  if is_death then
-    local timer_str = bonus_timer and string.format(" | Timer: %s", format_number(bonus_timer))
-      or ""
-    print(
-      string.format(
-        "*** Death #%d - Board %s [%s] *** | Death Points: %s | Total Score: %s | Lives: %d%s",
-        death_num,
-        board_info.board,
-        board_info.screen_type,
-        format_number(score_earned),
-        format_number(total_score),
-        lives_remaining,
-        timer_str
+  if SHOW_RUNNING_LOG then
+    if is_death then
+      local timer_str = bonus_timer and string.format(" | Timer: %s", format_number(bonus_timer))
+        or ""
+      print(
+        string.format(
+          "*** Death #%d - Board %s [%s] *** | Death Points: %s | Total Score: %s | Lives: %d%s",
+          death_num,
+          board_info.board,
+          board_info.screen_type,
+          format_number(score_earned),
+          format_number(total_score),
+          lives_remaining,
+          timer_str
+        )
       )
-    )
-  else
-    print(
-      string.format(
-        "Board %s [%s] Complete | Board Score: %s | Total Score: %s | Lives: %d%s",
-        board_info.board,
-        board_info.screen_type,
-        format_number(score_earned),
-        format_number(total_score),
-        lives_remaining,
-        avg_str
+    else
+      print(
+        string.format(
+          "Board %s [%s] Complete | Board Score: %s | Total Score: %s | Lives: %d%s",
+          board_info.board,
+          board_info.screen_type,
+          format_number(score_earned),
+          format_number(total_score),
+          lives_remaining,
+          avg_str
+        )
       )
-    )
+    end
   end
 
   -- Check for MAX DIFFICULTY reached (completing board before max_diff_board triggers the message)
@@ -106,15 +108,17 @@ local function record_board_dk3(
         lives = lives_remaining,
       })
 
-      print(
-        string.format(
-          "\n>>> MAX DIFFICULTY REACHED <<< | Max Difficulty %d Score: %s | Total Score: %s | Lives: %d\n",
-          s.dk3_max_diff_count,
-          format_number(max_diff_score),
-          format_number(total_score),
-          lives_remaining
+      if SHOW_RUNNING_LOG then
+        print(
+          string.format(
+            "\n>>> MAX DIFFICULTY REACHED <<< | Max Difficulty %d Score: %s | Total Score: %s | Lives: %d\n",
+            s.dk3_max_diff_count,
+            format_number(max_diff_score),
+            format_number(total_score),
+            lives_remaining
+          )
         )
-      )
+      end
     end
   end
 
@@ -139,16 +143,18 @@ local function record_board_dk3(
       lives = lives_remaining,
     })
 
-    print(
-      string.format(
-        "\n>>> REPETITIVE BLUE SCREEN %d REACHED <<< | RBS %d Score: %s | Total Score: %s | Lives: %d\n",
-        s.dk3_rbs_count,
-        s.dk3_rbs_count,
-        format_number(rbs_score),
-        format_number(total_score),
-        lives_remaining
+    if SHOW_RUNNING_LOG then
+      print(
+        string.format(
+          "\n>>> REPETITIVE BLUE SCREEN %d REACHED <<< | RBS %d Score: %s | Total Score: %s | Lives: %d\n",
+          s.dk3_rbs_count,
+          s.dk3_rbs_count,
+          format_number(rbs_score),
+          format_number(total_score),
+          lives_remaining
+        )
       )
-    )
+    end
   end
 
   -- Check for loop completion (every loop_size boards = memory board 0)
@@ -165,16 +171,18 @@ local function record_board_dk3(
       lives = lives_remaining,
     })
 
-    print(
-      string.format(
-        "\n>>> LOOP %d COMPLETE | LOOP %d Score: %s | Total Score: %s | Lives: %d <<<\n",
-        loop_num,
-        loop_num,
-        format_number(loop_score),
-        format_number(total_score),
-        lives_remaining
+    if SHOW_RUNNING_LOG then
+      print(
+        string.format(
+          "\n>>> LOOP %d COMPLETE | LOOP %d Score: %s | Total Score: %s | Lives: %d <<<\n",
+          loop_num,
+          loop_num,
+          format_number(loop_score),
+          format_number(total_score),
+          lives_remaining
+        )
       )
-    )
+    end
 
     -- Pause average tracking for next loop's start phase
     s.dk3_max_diff_reached = false
@@ -333,30 +341,32 @@ local function record_stage(
   end
 
   -- Clean console output
-  if is_death then
-    local timer_str = bonus_timer and string.format(" | Timer: %s", format_number(bonus_timer))
-      or ""
-    print(
-      string.format(
-        "*** Death #%d - Stage %s *** | Death Points: %s | Total Score: %s%s",
-        death_num,
-        stage_info.stage,
-        format_number(score_earned),
-        format_number(total_score),
-        timer_str
+  if SHOW_RUNNING_LOG then
+    if is_death then
+      local timer_str = bonus_timer and string.format(" | Timer: %s", format_number(bonus_timer))
+        or ""
+      print(
+        string.format(
+          "*** Death #%d - Stage %s *** | Death Points: %s | Total Score: %s%s",
+          death_num,
+          stage_info.stage,
+          format_number(score_earned),
+          format_number(total_score),
+          timer_str
+        )
       )
-    )
-  else
-    print(
-      string.format(
-        "Stage %s Complete | Stage Score: %s | Total Score: %s%s%s",
-        stage_info.stage,
-        format_number(score_earned),
-        format_number(total_score),
-        avg_str,
-        pace_str
+    else
+      print(
+        string.format(
+          "Stage %s Complete | Stage Score: %s | Total Score: %s%s%s",
+          stage_info.stage,
+          format_number(score_earned),
+          format_number(total_score),
+          avg_str,
+          pace_str
+        )
       )
-    )
+    end
   end
 end
 
@@ -395,15 +405,17 @@ local function record_level_total(level, score_earned, total_score)
     )
   end
 
-  print(
-    string.format(
-      "\n>>> LEVEL %s COMPLETE | Level Score: %s | Total Score: %s%s <<<\n",
-      level_display,
-      format_number(score_earned),
-      format_number(total_score),
-      avg_str
+  if SHOW_RUNNING_LOG then
+    print(
+      string.format(
+        "\n>>> LEVEL %s COMPLETE | Level Score: %s | Total Score: %s%s <<<\n",
+        level_display,
+        format_number(score_earned),
+        format_number(total_score),
+        avg_str
+      )
     )
-  )
+  end
 end
 
 -- Helper to find best and worst scores with tie handling

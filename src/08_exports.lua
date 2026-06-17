@@ -78,7 +78,7 @@ local function export_csv()
   local file = io.open(CSV_FILE, "w")
   if not file then
     print("ERROR: Could not create CSV file - check file permissions or if file is open")
-    return
+    return false
   end
 
   -- Write header based on game type
@@ -138,7 +138,7 @@ local function export_csv()
   end
 
   file:close()
-  print(string.format("\n[OK] CSV exported to: %s", CSV_FILE))
+  return true
 end
 
 -- ============================================================================
@@ -154,7 +154,7 @@ local function export_json()
   local file = io.open(JSON_FILE, "w")
   if not file then
     print("ERROR: Could not create JSON file")
-    return
+    return false
   end
 
   local config = get_config()
@@ -644,7 +644,7 @@ local function export_json()
   file:write("\n")
 
   file:close()
-  print(string.format("[OK] JSON exported to: %s", JSON_FILE))
+  return true
 end
 
 -- ============================================================================
@@ -670,7 +670,7 @@ local function export_text()
   local file = io.open(TEXT_FILE, "w")
   if not file then
     print("ERROR: Could not create text file")
-    return
+    return false
   end
 
   local config = get_config()
@@ -1424,5 +1424,5 @@ local function export_text()
   end
 
   file:close()
-  print(string.format("[OK] Text exported to: %s", TEXT_FILE))
+  return true
 end

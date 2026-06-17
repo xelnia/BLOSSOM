@@ -4,9 +4,6 @@
 *.txt
 *_scores.*
 
-# But keep output examples
-!output_examples/**
-
 # LuaLS editor config (tracked despite *.json above)
 !.luarc.json
 

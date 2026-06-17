@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-06-17
+
+### Added
+
+- **Console display section toggles** - five boolean flags in the script header
+  (`SHOW_RUNNING_LOG`, `SHOW_SCORING_SUMMARY`, `SHOW_LIVES_SUMMARY`,
+  `SHOW_TIMING_SUMMARY`, `SHOW_SCORE_MILESTONES`) allow users to suppress
+  individual console output sections without affecting export files, which always
+  contain complete session data (#3)
+- **LIVES SUMMARY section** in console output - Recorded Lives, Recorded Deaths,
+  and per-life statistics (first/last/longest/shortest/average) are now grouped
+  in their own section between SCORING SUMMARY and TIMING SUMMARY (#2)
+
+### Changed
+
+- **Console summary restructured** into four clearly delineated sections
+  (SCORING SUMMARY - LIVES SUMMARY - TIMING SUMMARY - SCORE MILESTONES) (#2)
+- **Timing summary consolidated** from two blocks (elapsed times + frame ranges)
+  to one line per measurement; "Unofficial" prefix dropped from all timing
+  labels (#2)
+- **DK3 timing milestones** now show segment frame ranges for subsequent
+  occurrences, with "Segment:" label replacing the numeric count label (#2)
+- **Score milestones reordered** to `score | location | Timer [board end] |
+  Lives | time (frame N) | +delta`; `[stage end]` renamed to `[board end]` and
+  attached to the Timer value (#2)
+- **DK3 scoring milestones** use "Segment:" label instead of numeric count for
+  per-loop scores (e.g., `Total: 6,317,900 | Segment: 477,200`) (#2)
+- **Export confirmation** consolidated from three `[OK]` lines to a single
+  `Exports: CSV [OK], JSON [OK], TXT [OK]` line; export functions now return
+  boolean status (#2)
+- **Platformer terminology** updated: "Final Stage" to "Final Board", "Total
+  Screens" to "Total Boards" in console output (#2)
+- **DK3 Loop timing label** simplified from "Loop N Complete" to "Loop N" (#2)
+- **Total Death Points** promoted to end of SCORING SUMMARY; Recorded Lives and
+  Recorded Deaths moved to LIVES SUMMARY (#2)
+- **README** expanded with console display toggle documentation, compact scorer
+  view example, and corrected quickstart command path (#4)
+
+### Removed
+
+- **output_examples directory** removed from repository to avoid maintenance
+  drift when output formats change; export format structure is documented in
+  README
+
+### Fixed
+
+- README quickstart command was missing `scripts/` prefix, causing a path error
+  when following the documented instructions (#4)
 
 ## [2.0.1] - 2026-06-15
 
@@ -164,7 +212,9 @@ and stage totals render as `L-A` through `L-F` (previously `LA` through `LF`) fo
 - Board and level averages.
 - End-of-game console summary.
 
-[Unreleased]: https://github.com/xelnia/BLOSSOM/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/xelnia/BLOSSOM/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/xelnia/BLOSSOM/compare/v2.0.1...v2.1.0
+[2.0.1]: https://github.com/xelnia/BLOSSOM/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/xelnia/BLOSSOM/compare/v1.2.0...v2.0.0
 [1.2.0]: https://github.com/xelnia/BLOSSOM/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/xelnia/BLOSSOM/compare/v1.0.0...v1.1.0

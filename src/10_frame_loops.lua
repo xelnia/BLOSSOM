@@ -112,11 +112,14 @@ local function on_frame_platformer()
         else
           s.start_frame = frame_count + start_frame_offset
         end
-        local msg = string.format("  [Timing] Start button: Frame %s", format_number(s.start_frame))
-        if session_banner_pending then
-          session_pending_timing_msg = msg
-        else
-          print(msg)
+        if SHOW_RUNNING_LOG then
+          local msg =
+            string.format("  [Timing] Start button: Frame %s", format_number(s.start_frame))
+          if session_banner_pending then
+            session_pending_timing_msg = msg
+          else
+            print(msg)
+          end
         end
       end
     end
@@ -140,15 +143,17 @@ local function on_frame_platformer()
       if s.start_frame then
         ms_time_str = string.format(" - %s", format_duration(milestone_frame - s.start_frame))
       end
-      print(
-        string.format(
-          "  *** %s Milestone (Frame %s%s | Lives: %d) ***",
-          format_number(s.next_score_milestone),
-          format_number(milestone_frame),
-          ms_time_str,
-          read_byte(config.addresses.lives)
+      if SHOW_RUNNING_LOG then
+        print(
+          string.format(
+            "  *** %s Milestone (Frame %s%s | Lives: %d) ***",
+            format_number(s.next_score_milestone),
+            format_number(milestone_frame),
+            ms_time_str,
+            read_byte(config.addresses.lives)
+          )
         )
-      )
+      end
       s.next_score_milestone = s.next_score_milestone + 100000
     end
   end
@@ -176,9 +181,14 @@ local function on_frame_platformer()
       s.spawn_y = py
     elseif px ~= s.spawn_x or py ~= s.spawn_y then
       s.speedrun_start_frame = frame_count + 1
-      print(
-        string.format("  [Timing] Speedrun start: Frame %s", format_number(s.speedrun_start_frame))
-      )
+      if SHOW_RUNNING_LOG then
+        print(
+          string.format(
+            "  [Timing] Speedrun start: Frame %s",
+            format_number(s.speedrun_start_frame)
+          )
+        )
+      end
     end
   end
 
@@ -200,14 +210,16 @@ local function on_frame_platformer()
       if rivet_count == 0 then
         s.speedrun_end_frame = frame_count
         local sr_dur = s.speedrun_end_frame - s.speedrun_start_frame
-        print(
-          string.format(
-            "  [Timing] Start Speedrun End: Frame %s (%s frames - %s)",
-            format_number(s.speedrun_end_frame),
-            format_number(sr_dur),
-            format_duration(sr_dur)
+        if SHOW_RUNNING_LOG then
+          print(
+            string.format(
+              "  [Timing] Start Speedrun End: Frame %s (%s frames - %s)",
+              format_number(s.speedrun_end_frame),
+              format_number(sr_dur),
+              format_duration(sr_dur)
+            )
           )
-        )
+        end
       end
     end
   end
@@ -220,14 +232,16 @@ local function on_frame_platformer()
     if vram_tile == config.start_level + 1 then
       s.start_phase_end_frame = frame_count
       local std_dur = s.start_phase_end_frame - s.start_frame
-      print(
-        string.format(
-          "  [Timing] Standard Start End: Frame %s (%s frames - %s)",
-          format_number(s.start_phase_end_frame),
-          format_number(std_dur),
-          format_duration(std_dur)
+      if SHOW_RUNNING_LOG then
+        print(
+          string.format(
+            "  [Timing] Standard Start End: Frame %s (%s frames - %s)",
+            format_number(s.start_phase_end_frame),
+            format_number(std_dur),
+            format_duration(std_dur)
+          )
         )
-      )
+      end
     end
   end
 
@@ -247,14 +261,16 @@ local function on_frame_platformer()
     if ks_flag == 0x03 and ks_secondary == 0x00 and ks_player == 0x01 and ks_jump ~= 0x01 then
       s.killscreen_frame = frame_count + 3
       local ks_dur = s.killscreen_frame - s.speedrun_start_frame
-      print(
-        string.format(
-          "  [Timing] Killscreen Speedrun End: Frame %s (%s frames - %s)",
-          format_number(s.killscreen_frame),
-          format_number(ks_dur),
-          format_duration(ks_dur)
+      if SHOW_RUNNING_LOG then
+        print(
+          string.format(
+            "  [Timing] Killscreen Speedrun End: Frame %s (%s frames - %s)",
+            format_number(s.killscreen_frame),
+            format_number(ks_dur),
+            format_duration(ks_dur)
+          )
         )
-      )
+      end
     end
   end
 
@@ -531,11 +547,14 @@ local function on_frame_dkong3()
         else
           s.start_frame = frame_count + start_frame_offset
         end
-        local msg = string.format("  [Timing] Start button: Frame %s", format_number(s.start_frame))
-        if session_banner_pending then
-          session_pending_timing_msg = msg
-        else
-          print(msg)
+        if SHOW_RUNNING_LOG then
+          local msg =
+            string.format("  [Timing] Start button: Frame %s", format_number(s.start_frame))
+          if session_banner_pending then
+            session_pending_timing_msg = msg
+          else
+            print(msg)
+          end
         end
       end
     end
@@ -559,15 +578,17 @@ local function on_frame_dkong3()
       if s.start_frame then
         ms_time_str = string.format(" - %s", format_duration(milestone_frame - s.start_frame))
       end
-      print(
-        string.format(
-          "  *** %s Milestone (Frame %s%s | Lives: %d) ***",
-          format_number(s.next_score_milestone),
-          format_number(milestone_frame),
-          ms_time_str,
-          read_byte(config.addresses.lives)
+      if SHOW_RUNNING_LOG then
+        print(
+          string.format(
+            "  *** %s Milestone (Frame %s%s | Lives: %d) ***",
+            format_number(s.next_score_milestone),
+            format_number(milestone_frame),
+            ms_time_str,
+            read_byte(config.addresses.lives)
+          )
         )
-      )
+      end
       s.next_score_milestone = s.next_score_milestone + 100000
     end
   end
