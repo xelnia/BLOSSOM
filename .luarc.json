@@ -5,36 +5,13 @@
   "Lua.workspace.checkThirdParty": false,
 
   "Lua.diagnostics.globals": [
+    // MAME-provided
     "emu",
     "manager",
 
-    "mame_machine",
-    "mame_options",
-    "mame_devices",
-    "read_frame_number",
-    "read_bonus_timer",
-    "register_frame_callback",
-    "register_stop_callback",
-    "detect_mame_version",
+    // 00_header.lua
     "BLOSSOM_VERSION",
-
-    "detect_game",
-    "GAME_TYPE",
-    "GAME_CONFIGS",
-
-    "s",
-    "create_session_state",
-    "reset_session_state",
-    "frame_count",
-    "game_variation",
-    "inp_playback_active",
-    "inp_playback_ended",
-    "start_frame_offset",
-    "inp_end_frame",
-    "session_count",
-    "session_banner_pending",
-    "session_pending_timing_msg",
-
+    "SHOW_INIT_HEADER",
     "SHOW_RUNNING_LOG",
     "SHOW_SCORING_SUMMARY",
     "SHOW_LIVES_SUMMARY",
@@ -43,13 +20,53 @@
     "EXPORT_CSV",
     "EXPORT_JSON",
     "EXPORT_TEXT",
+
+    // 01_compat.lua
+    "mame_machine",
+    "mame_options",
+    "mame_devices",
+    "read_frame_number",
+    "register_frame_callback",
+    "register_stop_callback",
+    "start_frame_offset",
+    "detect_mame_version",
+    // "screen_device",  -- variable, currently unregistered
+
+    // 02_config.lua
+    "detect_game",
+    "GAME_TYPE",
+    "GAME_CONFIGS",
+
+    // 03_state.lua
+    "frame_count",
+    "game_variation",
+    "inp_playback_active",
+    "inp_playback_ended",
+    "inp_end_frame",
+    "session_count",
+    "session_banner_pending",
+    "session_pending_timing_msg",
+    "create_session_state",
+    "s",
+    "reset_session_state",
+
+    // 04_output_config.lua
+    "inp_full_path",
+    "inp_crc32",
+    "get_inp_filename",
+    "get_inp_crc32",
+    "create_output_directory",
+    "get_output_filenames",
     "CSV_FILE",
     "JSON_FILE",
     "TEXT_FILE",
-    "get_inp_filename",
-    "get_output_filenames",
-    "create_output_directory",
+    // "inp_base_name",  -- variable, currently unregistered
+    // "inp_timestamp",  -- variable, currently unregistered
+    // "resolve_inp_path",  -- function, currently unregistered
+    // "cache_inp_info",  -- function, currently unregistered
 
+    // 05_helpers.lua
+    "compute_file_crc32",
     "get_config",
     "get_screen_type_name",
     "read_byte",
@@ -57,18 +74,22 @@
     "get_adjusted_score",
     "read_score_with_rollover_check",
     "check_button_pressed",
+    "read_bonus_timer",
     "format_duration",
     "format_number",
     "format_number_decimal",
     "format_level_for_display",
-    "format_level_label",
     "get_stage_name",
+    "format_level_label",
     "calculate_pace",
     "calculate_22_4_pace",
+    // "crc32_table",  -- variable, currently unregistered
+
+    // 06_dk3_helpers.lua
     "get_board_name_dk3",
     "detect_variation_dk3",
-    "get_playing_time_frames",
 
+    // 07_recording.lua
     "record_board_dk3",
     "record_stage",
     "record_level_total",
@@ -76,18 +97,27 @@
     "calculate_dk3_life_stats",
     "calculate_life_stats",
 
+    // 08_exports.lua
     "export_csv",
     "export_json",
+    "get_playing_time_frames",
     "export_text",
+    // "json_ordered",  -- function, currently unregistered
+    // "to_json",  -- function, currently unregistered
 
+    // 09_summary.lua
     "print_platformer_summary",
     "print_dk3_summary",
     "finalize_session",
 
+    // 10_frame_loops.lua
     "on_frame_platformer",
     "on_frame_dkong3",
     "on_frame",
+
+    // 11_init.lua
     "protected_on_frame"
+    // "config",  -- variable, currently unregistered
   ],
 
   "Lua.diagnostics.disable": [

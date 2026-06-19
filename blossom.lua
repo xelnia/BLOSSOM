@@ -6,9 +6,10 @@
 -- Supported MAME versions: 0.175+
 -- Exports scoring data and summary in CSV, JSON, and TXT format
 
-local BLOSSOM_VERSION = "2.1.0"
+local BLOSSOM_VERSION = "2.2.0"
 
 -- Console display toggles (these do not affect export files)
+local SHOW_INIT_HEADER = true
 local SHOW_RUNNING_LOG = true
 local SHOW_SCORING_SUMMARY = true
 local SHOW_LIVES_SUMMARY = true
@@ -667,6 +668,37 @@ end
 -- Cache INP base name and timestamp at startup (before playback option might clear)
 local inp_base_name = nil
 local inp_timestamp = nil
+local inp_full_path = nil
+local inp_crc32 = nil
+
+-- Resolve full INP path by probing candidate paths
+-- Handles: full paths, relative paths, bare filenames with input_directory search
+local function resolve_inp_path(playback_file)
+  -- Try raw value first (covers full paths and relative paths with directories)
+  local f = io.open(playback_file, "rb")
+  if f then
+    f:close()
+    return playback_file
+  end
+
+  -- Try prepending each input_directory search path (covers bare filenames)
+  local inp_dir = mame_options.entries["input_directory"]:value()
+  if inp_dir and inp_dir ~= "" then
+    for dir in inp_dir:gmatch("[^;]+") do
+      dir = dir:gsub("^%s+", ""):gsub("%s+$", "")
+      if not dir:match("[/\\]$") then
+        dir = dir .. "/"
+      end
+      f = io.open(dir .. playback_file, "rb")
+      if f then
+        f:close()
+        return dir .. playback_file
+      end
+    end
+  end
+
+  return nil
+end
 
 local function cache_inp_info()
   local playback_file = mame_options.entries["playback"]:value()
@@ -674,6 +706,7 @@ local function cache_inp_info()
     local base = playback_file:match("(.+)%.inp$") or playback_file
     inp_base_name = base:match("^.+[/\\](.+)$") or base
     inp_timestamp = os.date("%Y%m%d_%H%M%S")
+    inp_full_path = resolve_inp_path(playback_file)
   end
 end
 
@@ -692,6 +725,10 @@ local function get_inp_filename()
     return playback_file:match("^.+[/\\](.+)$") or playback_file
   end
   return "unknown"
+end
+
+local function get_inp_crc32()
+  return inp_crc32
 end
 
 -- Create blossom_logs directory
@@ -719,6 +756,49 @@ local CSV_FILE, JSON_FILE, TEXT_FILE = get_output_filenames(1)
 -- ============================================================================
 -- HELPER FUNCTIONS
 -- ============================================================================
+
+-- ============================================================================
+-- CRC32 IMPLEMENTATION (IEEE 802.3 / ISO 3309)
+-- Standard polynomial 0xEDB88320 (reflected form)
+-- Used for INP file identity verification across tools
+-- ============================================================================
+
+local crc32_table = {}
+for i = 0, 255 do
+  local crc = i
+  for _ = 1, 8 do
+    if (crc & 1) == 1 then
+      crc = (crc >> 1) ~ 0xEDB88320
+    else
+      crc = crc >> 1
+    end
+  end
+  crc32_table[i] = crc
+end
+
+-- Compute CRC32 of a file, returns 8-char uppercase hex string or nil on failure
+local function compute_file_crc32(filepath)
+  local file = io.open(filepath, "rb")
+  if not file then
+    return nil
+  end
+
+  local crc = 0xFFFFFFFF
+
+  while true do
+    local chunk = file:read(8192)
+    if not chunk then
+      break
+    end
+    for k = 1, #chunk do
+      local byte = chunk:byte(k)
+      crc = (crc >> 8) ~ crc32_table[(crc ~ byte) & 0xFF]
+    end
+  end
+
+  file:close()
+  return string.format("%08X", (crc ~ 0xFFFFFFFF) & 0xFFFFFFFF)
+end
 
 -- GAME CONFIG HELPERS
 -- Get current game config
@@ -1832,6 +1912,7 @@ local function export_json()
     { "variation", GAME_TYPE == "dkong3" and game_variation or nil },
     { "romset", config.romset },
     { "inp_file", get_inp_filename() },
+    { "inp_crc32", get_inp_crc32() },
     { "mame_version", detect_mame_version() },
     { "blossom_version", BLOSSOM_VERSION },
   })
@@ -2330,13 +2411,13 @@ local function export_text()
     end
 
     -- HEADER
-    file:write("=== BLOSSOM SCORE LOG ===\n")
+    file:write(string.format("=== BLOSSOM v%s ===\n", BLOSSOM_VERSION))
     file:write(string.format("Game: %s\n", config.full_name))
     file:write(string.format("Variation: %s\n", game_variation or ""))
     file:write(string.format("romset: %s\n", config.romset))
-    file:write(string.format("INP file: %s\n", get_inp_filename()))
     file:write(string.format("MAME version: %s\n", detect_mame_version()))
-    file:write(string.format("BLOSSOM version: %s\n", BLOSSOM_VERSION))
+    file:write(string.format("INP file: %s\n", get_inp_filename()))
+    file:write(string.format("INP CRC32: %s\n", get_inp_crc32() or "unavailable"))
 
     -- SCORING SUMMARY
     file:write("\nSCORING SUMMARY\n---------------\n")
@@ -2706,12 +2787,12 @@ local function export_text()
     end
 
     -- HEADER
-    file:write("=== BLOSSOM SCORE LOG ===\n")
+    file:write(string.format("=== BLOSSOM v%s ===\n", BLOSSOM_VERSION))
     file:write(string.format("Game: %s\n", config.full_name))
     file:write(string.format("romset: %s\n", config.romset))
-    file:write(string.format("INP file: %s\n", get_inp_filename()))
     file:write(string.format("MAME version: %s\n", detect_mame_version()))
-    file:write(string.format("BLOSSOM version: %s\n", BLOSSOM_VERSION))
+    file:write(string.format("INP file: %s\n", get_inp_filename()))
+    file:write(string.format("INP CRC32: %s\n", get_inp_crc32() or "unavailable"))
 
     -- SCORING SUMMARY
     file:write("\nSCORING SUMMARY\n---------------\n")
@@ -4687,27 +4768,42 @@ local function on_frame()
 end
 
 -- INITIALIZATION
-print("\n=== BLOSSOM ===")
+
+-- Compute INP file hash for cross-tool verification
+inp_crc32 = compute_file_crc32(inp_full_path)
 
 local config = get_config()
 
 if GAME_TYPE == "dkong3" then
-  -- DK3: Show variation after game name
-  print(string.format("Game: %s", config.full_name))
-  print(string.format("romset: %s", config.romset))
   game_variation = detect_variation_dk3()
-  print(string.format("Variation: %s", game_variation))
-  print(string.format("MAME version: %s", detect_mame_version()))
-  print(string.format("INP: %s\n", get_inp_filename()))
-else
-  -- Standard platformers: No variation line
-  print(string.format("Game: %s", config.full_name))
-  print(string.format("romset: %s", config.romset))
-  print(string.format("MAME version: %s", detect_mame_version()))
-  print(string.format("INP: %s\n", get_inp_filename()))
 end
 
-print("Tracking gameplay...\n")
+if SHOW_INIT_HEADER then
+  print(string.format("\n=== BLOSSOM v%s ===", BLOSSOM_VERSION))
+  if GAME_TYPE == "dkong3" then
+    -- DK3: Show variation after game name
+    print(string.format("Game: %s", config.full_name))
+    print(string.format("romset: %s", config.romset))
+    game_variation = detect_variation_dk3()
+    print(string.format("Variation: %s", game_variation))
+    print(string.format("MAME version: %s", detect_mame_version()))
+    print(string.format("INP: %s", get_inp_filename()))
+    print(string.format("INP CRC32: %s\n", inp_crc32 or "unavailable"))
+  else
+    -- Standard platformers: No variation line
+    print(string.format("Game: %s", config.full_name))
+    print(string.format("romset: %s", config.romset))
+    print(string.format("MAME version: %s", detect_mame_version()))
+    print(string.format("INP: %s", get_inp_filename()))
+    print(string.format("INP CRC32: %s\n", inp_crc32 or "unavailable"))
+  end
+end
+
+if SHOW_INIT_HEADER then
+  print("Tracking gameplay...\n")
+else
+  print(string.format("\nBLOSSOM v%s is tracking gameplay...", BLOSSOM_VERSION))
+end
 
 -- Detect INP playback mode (guards against false INP-end detection on live play)
 if mame_options.entries["playback"]:value() ~= "" then

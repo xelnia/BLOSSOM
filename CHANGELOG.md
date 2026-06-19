@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-06-18
+
+### Added
+
+- `SHOW_INIT_HEADER` console display toggle - suppresses the startup banner
+  (BLOSSOM version, game name, romset, variation, MAME version, INP filename, INP CRC32) while
+  preserving a single identification line with version number
+
+- INP file CRC32 hash (IEEE 802.3) for cross-tool verification against Python
+  analysis tools and 7-Zip archives; displayed in console header, TXT header,
+  and JSON metadata (`inp_crc32` field)
+- INP path resolution handles bare filenames, full paths, custom input
+  directories, and semicolon-separated MAME search paths
+
+### Changed
+
+- Header banner now includes version number (`=== BLOSSOM v2.2.0 ===`);
+  dedicated BLOSSOM version line removed from TXT export
+
+- `.luarc.json` now contains clearer documentation of where each cross-module declaration is located
+
 ## [2.1.0] - 2026-06-17
 
 ### Added
@@ -212,7 +233,8 @@ and stage totals render as `L-A` through `L-F` (previously `LA` through `LF`) fo
 - Board and level averages.
 - End-of-game console summary.
 
-[Unreleased]: https://github.com/xelnia/BLOSSOM/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/xelnia/BLOSSOM/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/xelnia/BLOSSOM/compare/v2.1.0...2.2.0
 [2.1.0]: https://github.com/xelnia/BLOSSOM/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/xelnia/BLOSSOM/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/xelnia/BLOSSOM/compare/v1.2.0...v2.0.0

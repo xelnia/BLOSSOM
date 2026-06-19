@@ -2,6 +2,49 @@
 -- HELPER FUNCTIONS
 -- ============================================================================
 
+-- ============================================================================
+-- CRC32 IMPLEMENTATION (IEEE 802.3 / ISO 3309)
+-- Standard polynomial 0xEDB88320 (reflected form)
+-- Used for INP file identity verification across tools
+-- ============================================================================
+
+local crc32_table = {}
+for i = 0, 255 do
+  local crc = i
+  for _ = 1, 8 do
+    if (crc & 1) == 1 then
+      crc = (crc >> 1) ~ 0xEDB88320
+    else
+      crc = crc >> 1
+    end
+  end
+  crc32_table[i] = crc
+end
+
+-- Compute CRC32 of a file, returns 8-char uppercase hex string or nil on failure
+local function compute_file_crc32(filepath)
+  local file = io.open(filepath, "rb")
+  if not file then
+    return nil
+  end
+
+  local crc = 0xFFFFFFFF
+
+  while true do
+    local chunk = file:read(8192)
+    if not chunk then
+      break
+    end
+    for k = 1, #chunk do
+      local byte = chunk:byte(k)
+      crc = (crc >> 8) ~ crc32_table[(crc ~ byte) & 0xFF]
+    end
+  end
+
+  file:close()
+  return string.format("%08X", (crc ~ 0xFFFFFFFF) & 0xFFFFFFFF)
+end
+
 -- GAME CONFIG HELPERS
 -- Get current game config
 local function get_config()

@@ -189,6 +189,7 @@ local function export_json()
     { "variation", GAME_TYPE == "dkong3" and game_variation or nil },
     { "romset", config.romset },
     { "inp_file", get_inp_filename() },
+    { "inp_crc32", get_inp_crc32() },
     { "mame_version", detect_mame_version() },
     { "blossom_version", BLOSSOM_VERSION },
   })
@@ -687,13 +688,13 @@ local function export_text()
     end
 
     -- HEADER
-    file:write("=== BLOSSOM SCORE LOG ===\n")
+    file:write(string.format("=== BLOSSOM v%s ===\n", BLOSSOM_VERSION))
     file:write(string.format("Game: %s\n", config.full_name))
     file:write(string.format("Variation: %s\n", game_variation or ""))
     file:write(string.format("romset: %s\n", config.romset))
-    file:write(string.format("INP file: %s\n", get_inp_filename()))
     file:write(string.format("MAME version: %s\n", detect_mame_version()))
-    file:write(string.format("BLOSSOM version: %s\n", BLOSSOM_VERSION))
+    file:write(string.format("INP file: %s\n", get_inp_filename()))
+    file:write(string.format("INP CRC32: %s\n", get_inp_crc32() or "unavailable"))
 
     -- SCORING SUMMARY
     file:write("\nSCORING SUMMARY\n---------------\n")
@@ -1063,12 +1064,12 @@ local function export_text()
     end
 
     -- HEADER
-    file:write("=== BLOSSOM SCORE LOG ===\n")
+    file:write(string.format("=== BLOSSOM v%s ===\n", BLOSSOM_VERSION))
     file:write(string.format("Game: %s\n", config.full_name))
     file:write(string.format("romset: %s\n", config.romset))
-    file:write(string.format("INP file: %s\n", get_inp_filename()))
     file:write(string.format("MAME version: %s\n", detect_mame_version()))
-    file:write(string.format("BLOSSOM version: %s\n", BLOSSOM_VERSION))
+    file:write(string.format("INP file: %s\n", get_inp_filename()))
+    file:write(string.format("INP CRC32: %s\n", get_inp_crc32() or "unavailable"))
 
     -- SCORING SUMMARY
     file:write("\nSCORING SUMMARY\n---------------\n")

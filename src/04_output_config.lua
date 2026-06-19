@@ -5,6 +5,37 @@
 -- Cache INP base name and timestamp at startup (before playback option might clear)
 local inp_base_name = nil
 local inp_timestamp = nil
+local inp_full_path = nil
+local inp_crc32 = nil
+
+-- Resolve full INP path by probing candidate paths
+-- Handles: full paths, relative paths, bare filenames with input_directory search
+local function resolve_inp_path(playback_file)
+  -- Try raw value first (covers full paths and relative paths with directories)
+  local f = io.open(playback_file, "rb")
+  if f then
+    f:close()
+    return playback_file
+  end
+
+  -- Try prepending each input_directory search path (covers bare filenames)
+  local inp_dir = mame_options.entries["input_directory"]:value()
+  if inp_dir and inp_dir ~= "" then
+    for dir in inp_dir:gmatch("[^;]+") do
+      dir = dir:gsub("^%s+", ""):gsub("%s+$", "")
+      if not dir:match("[/\\]$") then
+        dir = dir .. "/"
+      end
+      f = io.open(dir .. playback_file, "rb")
+      if f then
+        f:close()
+        return dir .. playback_file
+      end
+    end
+  end
+
+  return nil
+end
 
 local function cache_inp_info()
   local playback_file = mame_options.entries["playback"]:value()
@@ -12,6 +43,7 @@ local function cache_inp_info()
     local base = playback_file:match("(.+)%.inp$") or playback_file
     inp_base_name = base:match("^.+[/\\](.+)$") or base
     inp_timestamp = os.date("%Y%m%d_%H%M%S")
+    inp_full_path = resolve_inp_path(playback_file)
   end
 end
 
@@ -30,6 +62,10 @@ local function get_inp_filename()
     return playback_file:match("^.+[/\\](.+)$") or playback_file
   end
   return "unknown"
+end
+
+local function get_inp_crc32()
+  return inp_crc32
 end
 
 -- Create blossom_logs directory

@@ -67,6 +67,7 @@ See `CHANGELOG.md` for the full list of changes. Note: v2.0.0 includes breaking 
 ### Deaths
 - Deferred death recording for accurate score settlement (catches simultaneous score and death events)
 - Death point tracking with bonus timer capture
+> **Note:** When the bonus timer value is appended to a killscreen death or completion in any output, the value reflects the internal bug state, not the corrupted display value.
 
 ### Timing
 - Full Game timing: start button press to "GAME OVER" message
@@ -109,6 +110,7 @@ Set any to `false` to suppress that output file.
 ### Console Display Toggles
 
 ```lua
+local SHOW_INIT_HEADER = true
 local SHOW_RUNNING_LOG = true
 local SHOW_SCORING_SUMMARY = true
 local SHOW_LIVES_SUMMARY = true
@@ -120,6 +122,7 @@ These control which sections appear in the MAME console during and after playbac
 
 | Toggle | Controls |
 |--------|----------|
+| `SHOW_INIT_HEADER` | BLOSSOM version, game name, romset, variation, MAME version, INP filename, INP CRC32 |
 | `SHOW_RUNNING_LOG` | Real-time per-board prints, milestone alerts, and `[Timing]` events during playback |
 | `SHOW_SCORING_SUMMARY` | Final score, board progress, pace, screen/level averages, death points |
 | `SHOW_LIVES_SUMMARY` | Recorded lives/deaths, per-life statistics (first, last, longest, shortest, average) |
@@ -128,7 +131,9 @@ These control which sections appear in the MAME console during and after playbac
 
 For a compact scorer view, set everything to `false` except `SHOW_SCORING_SUMMARY`.
 
-> **Note:** When the bonus timer value is appended to a killscreen death or completion in any output, the value reflects the internal bug state, not the corrupted display value.
+When `SHOW_INIT_HEADER = true`, the bottom of the header will display `Tracking gameplay...`
+
+When `SHOW_INIT_HEADER = false`, the entire header is suppressed but the tracking gameplay line will still print and switch to show the BLOSSOM version: `BLOSSOM v{version} is tracking gameplay...`
 
 ## How It Works
 
@@ -193,22 +198,22 @@ Example module map after build (these values might not be current):
 Line Range Map:
 Source File                      Lines  Count
 ---------------------------------------------
-00_header.lua                     1-21     21
-01_compat.lua                   23-156    134
-02_config.lua                  158-488    331
-03_state.lua                   490-661    172
-04_output_config.lua           663-717     55
-05_helpers.lua                 719-967    249
-06_dk3_helpers.lua            969-1026     58
-07_recording.lua             1028-1642    615
-08_exports.lua               1644-3071   1428
-09_summary.lua               3073-3944    872
-10_frame_loops.lua           3946-4687    742
-11_init.lua                  4689-4729     41
+00_header.lua                     1-22     22
+01_compat.lua                   24-157    134
+02_config.lua                  159-489    331
+03_state.lua                   491-662    172
+04_output_config.lua           664-754     91
+05_helpers.lua                756-1047    292
+06_dk3_helpers.lua           1049-1106     58
+07_recording.lua             1108-1722    615
+08_exports.lua               1724-3152   1429
+09_summary.lua               3154-4025    872
+10_frame_loops.lua           4027-4768    742
+11_init.lua                  4770-4825     56
 ---------------------------------------------
 Separators (1 between files)               11
-Total source lines                       4718
-Final blossom.lua length                 4729
+Total source lines                       4814
+Final blossom.lua length                 4825
 ```
 
 ## Timing Definitions
